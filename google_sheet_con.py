@@ -1,9 +1,9 @@
 import gspread, random
-import sql_conn
-# from sql_conn import checkIfWordExist, sqlQueryList
+# import sql_conn
+from sql_conn import checkIfWordExist, sqlQueryIfExist
 from google.oauth2.service_account import Credentials
 from gspread.exceptions import APIError, SpreadsheetNotFound
-
+2
 scopes = ["https://www.googleapis.com/auth/spreadsheets"]
 
 creds = Credentials.from_service_account_file("credentials.json", scopes = scopes)
@@ -42,7 +42,7 @@ def start_learning(wordsQuantity:int) -> None:
         else:
             score += 0
             words_to_practice.append(el[0])
-            sql_conn.checkIfWordExist(sql_conn.sqlQueryIfExist,words_to_practice)
+            checkIfWordExist(sqlQueryIfExist,el[0])
 
 
     print(f"Twój wynik to: {score}/{wordsQuantity}")
