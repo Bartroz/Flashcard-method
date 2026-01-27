@@ -11,23 +11,64 @@ client = gspread.authorize(creds)
 sheet_id = "1SEylIRcFcGVEcBMnGhRyeCMhphbjbIFaWT_OYKdvCOk"
 sheet = client.open_by_key(sheet_id)
 
-worksheet = sheet.sheet1
+worksheets = [sheet.worksheet("Strona1"),sheet.worksheet("Strona2")]
 
-word_col = worksheet.col_values(1)
-meaning_col = worksheet.col_values(2)
-meaning_col2 = worksheet.col_values(3)
+li = worksheets[0].get_all_values()
+print(li)
+
+def dfDB() -> dict:
+    google_sheet_columns = {
+    "word_col": [],
+    "meaning_col" : [],
+    "meaning_col2" : [],
+    "meaning_col3" : []
+}
+ 
+    for s in worksheets:
+        google_sheet_columns["word_col"].extend(s.col_values(1))
+        google_sheet_columns["meaning_col"].extend(s.col_values(2))
+        google_sheet_columns["meaning_col2"].extend(s.col_values(3))
+        google_sheet_columns["meaning_col3"].extend(s.col_values(4))
+
+    return google_sheet_columns
 
 list_of_dicst = []
 
 def download_from_database() -> None:   #pobieranie słówek z google sheet
-    for x,y,z in zip(word_col,meaning_col,meaning_col2):
-        if z:
-            list_of_dicst.append((x,y,z))
-        else:
-            list_of_dicst.append((x,y))
+    table = dfDB()
+    for x in table["word_col"]:
+    # for x,y,z,xx in zip(table["word_col"]):
+        # if z:
+        #     if xx:
+        #         list_of_dicst.append((x,y,z,xx))
+        #     else:
+        #         list_of_dicst.append((x,y,z))
+        # else:
+        #     list_of_dicst.append((x))
+        #     print(x)
+
+        list_of_dicst.append((x))
+        print(x)
+    
+    # print(list_of_dicst)
+    # print(len(list_of_dicst))
 
 def list_shuffe() -> None: #mieszanie listy ze słowkami
     random.shuffle(list_of_dicst)
+
+# def chooseProgram() -> None:
+#     action = {
+#         "1":""
+#     }
+    print("\n=== MENU GŁÓWNE ===")
+    print("Wybierz tryb nauki:\n")
+    print("1) Nauka nowych słówek")
+    print("2) Powtórka poznanych słów")
+    print("3) Powtórka nieopanowanych słów")
+
+    choice = input("\nTwój wybór (1–3): ")
+
+
 
 def start_learning(wordsQuantity:int) -> None: #nauka
     list_shuffe()
@@ -58,8 +99,10 @@ def main() -> None:
     start_learning(quantity)
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+    # main()
+    # chooseProgram()
+    # download_from_database()
     
 
 
