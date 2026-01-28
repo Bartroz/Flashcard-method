@@ -13,60 +13,65 @@ sheet = client.open_by_key(sheet_id)
 
 worksheets = [sheet.worksheet("Strona1"),sheet.worksheet("Strona2")]
 
-li = worksheets[0].get_all_values()
-print(li)
-
-def dfDB() -> dict:
-    google_sheet_columns = {
-    "word_col": [],
-    "meaning_col" : [],
-    "meaning_col2" : [],
-    "meaning_col3" : []
-}
- 
-    for s in worksheets:
-        google_sheet_columns["word_col"].extend(s.col_values(1))
-        google_sheet_columns["meaning_col"].extend(s.col_values(2))
-        google_sheet_columns["meaning_col2"].extend(s.col_values(3))
-        google_sheet_columns["meaning_col3"].extend(s.col_values(4))
-
-    return google_sheet_columns
-
 list_of_dicst = []
+        
+def dfDB() -> list:
+    record = []
+ 
+    for sh in worksheets:
+        record.extend(sh.get_all_values())
+        
+    return record
 
-def download_from_database() -> None:   #pobieranie słówek z google sheet
-    table = dfDB()
-    for x in table["word_col"]:
-    # for x,y,z,xx in zip(table["word_col"]):
-        # if z:
-        #     if xx:
-        #         list_of_dicst.append((x,y,z,xx))
-        #     else:
-        #         list_of_dicst.append((x,y,z))
-        # else:
-        #     list_of_dicst.append((x))
-        #     print(x)
+def download_from_database() -> list:   #pobieranie słówek z google sheet
+    rows = dfDB()
 
-        list_of_dicst.append((x))
-        print(x)
+    for row in rows:
+        word = row[0]
+        meaning1 = row[1]
+        if len(row) > 2 and len(row[2]) != 0:
+            meaning2 = row[2]
+        else:
+            meaning2 = None
+
+            if len(row) > 3 and len(row[3]) != 0:
+                meaning3 = row[3]
+            else:
+                meaning3 = None
     
-    # print(list_of_dicst)
-    # print(len(list_of_dicst))
+        if not word and not meaning1:
+            raise ValueError("Kolumna 1 i 2 są obowiązkowe")
+        
+        if meaning3 and not meaning2:
+            raise ValueError("Kolumna 3 nie może istnieć bez kolumny 2")
+
+        if meaning3:
+            list_of_dicst.append((word,meaning1,meaning2,meaning3))
+        elif meaning2:
+            list_of_dicst.append((word,meaning1,meaning2))
+        else:
+            list_of_dicst.append((word,meaning1))
+
+    return list_of_dicst
 
 def list_shuffe() -> None: #mieszanie listy ze słowkami
     random.shuffle(list_of_dicst)
 
-# def chooseProgram() -> None:
-#     action = {
-#         "1":""
-#     }
-    print("\n=== MENU GŁÓWNE ===")
-    print("Wybierz tryb nauki:\n")
-    print("1) Nauka nowych słówek")
-    print("2) Powtórka poznanych słów")
-    print("3) Powtórka nieopanowanych słów")
 
-    choice = input("\nTwój wybór (1–3): ")
+# def chooseProgram() -> None:
+
+    # print("\n=== MENU GŁÓWNE ===")
+    # print("Wybierz tryb nauki:\n")
+    # print("1) Nauka nowych słówek")
+    # print("2) Powtórka poznanych słów")
+    # print("3) Powtórka nieopanowanych słów")
+
+    # choice = input("\nTwój wybór (1–3): ")
+
+    # if choice == "1":
+    #     start_learning_from_scratch()
+    # elif choice == "2":
+    #     repe
 
 
 
@@ -99,10 +104,9 @@ def main() -> None:
     start_learning(quantity)
 
 
-# if __name__ == "__main__":
-    # main()
-    # chooseProgram()
-    # download_from_database()
+if __name__ == "__main__":
+    main()
+
     
 
 
