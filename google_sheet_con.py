@@ -3,30 +3,37 @@ from sql_conn import checkIfWordExist
 from google.oauth2.service_account import Credentials
 from gspread.exceptions import APIError, SpreadsheetNotFound
 
-scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+scopes:list[str] = ["https://www.googleapis.com/auth/spreadsheets"]
 
 creds = Credentials.from_service_account_file("credentials.json", scopes = scopes)
 client = gspread.authorize(creds)
 
-sheet_id = "1SEylIRcFcGVEcBMnGhRyeCMhphbjbIFaWT_OYKdvCOk"
-sheet = client.open_by_key(sheet_id)
+sheetID = "1SEylIRcFcGVEcBMnGhRyeCMhphbjbIFaWT_OYKdvCOk"
+sheet = client.open_by_key(sheetID)
 
 worksheets = [sheet.worksheet("Strona1"),sheet.worksheet("Strona2")]
 
-list_of_dicst = []
+listOfDicst:list[str] = []
         
-def dfDB() -> list:
-    record = []
+def download_from_database() -> tuple[list,int]: #pobieranie słówek z google sheet
+    record:list[str] = []
  
     for sh in worksheets:
         record.extend(sh.get_all_values())
     
-    
-        
-    return record
+    wordsQuantity:int = len(record)
 
-def download_from_database() -> list:   #pobieranie słówek z google sheet
-    rows = dfDB()
+    return record,wordsQuantity
+
+
+def split_data_to_rows() -> list:   #Rodzielanie poszczególnych słówek z arkusza google na poszczególne miejsca w słowniku
+    rows,length = download_from_database()
+    randomNumbers: list[int] = []
+
+    for i in range(0,5):
+        randomNumbers.append(random.randrange(1, length))
+
+    print(randomNumbers)
 
     for row in rows:
         word = row[0]
@@ -48,16 +55,16 @@ def download_from_database() -> list:   #pobieranie słówek z google sheet
             raise ValueError("Kolumna 3 nie może istnieć bez kolumny 2")
 
         if meaning3:
-            list_of_dicst.append((word,meaning1,meaning2,meaning3))
+            listOfDicst.append((word,meaning1,meaning2,meaning3))
         elif meaning2:
-            list_of_dicst.append((word,meaning1,meaning2))
+            listOfDicst.append((word,meaning1,meaning2))
         else:
-            list_of_dicst.append((word,meaning1))
+            listOfDicst.append((word,meaning1))
 
-    return list_of_dicst
+    return listOfDicst
 
 def list_shuffe() -> None: #mieszanie listy ze słowkami
-    random.shuffle(list_of_dicst)
+    random.shuffle(listOfDicst)
 
 
 # def chooseProgram() -> None:
@@ -80,8 +87,9 @@ def list_shuffe() -> None: #mieszanie listy ze słowkami
 def start_learning(wordsQuantity:int) -> None: #nauka
     list_shuffe()
     score: int = 0
-    words_to_practice = []
-    for i,el in enumerate(list_of_dicst[:wordsQuantity]):
+    wordToPractice:list[str] = []
+
+    for i,el in enumerate(listOfDicst[:wordsQuantity]):
         print(f"{i+1} : {el[0]}")
         meaning = input("Podaj znaczenie:  ") 
         
@@ -89,21 +97,21 @@ def start_learning(wordsQuantity:int) -> None: #nauka
             score += 1
         else:
             score += 0
-            words_to_practice.append(el[0])
+            wordToPractice.append(el[0])
             checkIfWordExist(el[0],el[1])
 
 
     print(f"Twój wynik to: {score}/{wordsQuantity}")
 
-    if len(words_to_practice) != 0: 
-        print(f"Słowa, które musisz powtórzyć to: {words_to_practice}")
+    if len(wordToPractice) != 0: 
+        print(f"Słowa, które musisz powtórzyć to: {wordToPractice}")
     else:
         print("Gratulacje, możesz iść dalej!")
 
 def main() -> None:
-    download_from_database()
-    quantity = int(input("Wybierz ilość słów do powtórzenia:  "))
-    start_learning(quantity)
+    split_data_to_rows()
+    # quantity = int(input("Wybierz ilość słów do powtórzenia:  "))
+    # start_learning(quantity)
 
 
 if __name__ == "__main__":
