@@ -2,7 +2,7 @@ import gspread, random
 from sql_conn import checkIfWordExist
 from google.oauth2.service_account import Credentials
 from gspread.exceptions import APIError, SpreadsheetNotFound
-2
+
 scopes = ["https://www.googleapis.com/auth/spreadsheets"]
 
 creds = Credentials.from_service_account_file("credentials.json", scopes = scopes)
@@ -20,6 +20,8 @@ def dfDB() -> list:
  
     for sh in worksheets:
         record.extend(sh.get_all_values())
+    
+    
         
     return record
 

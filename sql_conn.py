@@ -30,7 +30,7 @@ def insertWordToDB(wordToAdd:str,meaningToAdd:str) -> None:
 
 def checkIfTableExist(): #sprawdzanie czy DB istnienią - sprawdzane przy uruchomieniu
 
-    tableNames:list[str] = ["WordsFromGoogleSheet","LearnedWords", "WordsToPractice" ]
+    tableNames:list[str] = ["WordsFromGoogleSheet","LearnedWords", "WordsToPractice", "DbDataInfo" ]
     existingTablesDb:list[str] = []
     notExistingTablesDb:list[str] = []
     score:int = 0
@@ -68,7 +68,7 @@ def checkIfTableExist(): #sprawdzanie czy DB istnienią - sprawdzane przy urucho
             print(f"Error: {e}")
 
 
-def createTables(): #tworzenie tabeli
+def createTables(tablesToAdd:list[str]): #tworzenie tabeli
 
     query = """
     CREATE Table {table_name} (
@@ -82,7 +82,7 @@ def createTables(): #tworzenie tabeli
         try:
             cursor = connection.cursor()
             
-            for name in missingTables:
+            for name in tablesToAdd:
                 
                 cursor.execute(query.format(table_name = name))
 
@@ -94,5 +94,5 @@ def createTables(): #tworzenie tabeli
 if __name__ == "__main__":
     (status,missingTables) = checkIfTableExist()
     if not status:
-        createTables()
+        createTables(missingTables)
 
