@@ -1,5 +1,5 @@
-from sql_conn import add_word_to_main_db
-from google_sheet_con import check_if_google_sheet_updated, download_from_database, split_data_to_rows
+from sql_conn import add_word_to_main_db, check_if_google_sheet_updated
+from google_sheet_con import download_from_database, split_data_to_rows
 
 
 def operationsOnDB():
