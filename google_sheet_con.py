@@ -13,7 +13,7 @@ sheet = client.open_by_key(sheetID)
 
 worksheets = [sheet.worksheet("Strona1"),sheet.worksheet("Strona2")]
 
-listOfDicts:list[str] = []
+listOfDicst:list[str] = []
         
 def download_from_database() -> tuple[list,int]: #pobieranie słówek z google sheet
     record:list[str] = []
@@ -52,45 +52,41 @@ def split_data_to_rows() -> list:   #Rodzielanie poszczególnych słówek z arku
             raise ValueError("Kolumna 3 nie może istnieć bez kolumny 2")
 
         if meaning3:
-            listOfDicts.append((word,meaning1,meaning2,meaning3))
+            listOfDicst.append((word,meaning1,meaning2,meaning3))
         elif meaning2:
-            listOfDicts.append((word,meaning1,meaning2))
+            listOfDicst.append((word,meaning1,meaning2))
         else:
-            listOfDicts.append((word,meaning1))
+            listOfDicst.append((word,meaning1))
 
-    return listOfDicts
+    return listOfDicst
 
-def list_shuffle() -> None: #mieszanie listy ze słowkami
-    random.shuffle(listOfDicts)
+def list_shuffe() -> None: #mieszanie listy ze słowkami
+    random.shuffle(listOfDicst)
 
 def start_learning(wordsQuantity:int) -> None: #nauka
-    list_shuffle()
+    list_shuffe()
     score: int = 0
     wordToPractice:list[str] = []
-    max_attempts: int = 3
-    wordWithMeanings: int = 4
 
-    for i,el in enumerate(listOfDicts[:wordsQuantity]):
+    for i,el in enumerate(listOfDicst[:wordsQuantity]):
         print(f"{i+1} : {el[0]}")
         correctMeanings = [m.lower() for m in el[1:] if m]
         
         if len(correctMeanings)> 1:
-            chosenMeanings:set[str] = set()
+            choosenWord:set[str] = set()
             attempts:int = 0
-            knownMeanings: int = 0
-            
+            max_attempts: int = 3
 
-            while (len(chosenMeanings) < len(correctMeanings)) and attempts < max_attempts:
-                meaning = input(f"Podaj wszystkie znaczenia ({len(el) - 1}):  ").strip().lower()
+            while (len(choosenWord) < len(correctMeanings)):
+                meaning = input(f"Podaj wszystkie znaczenia ({len(el)}):  ").strip().lower()
 
                 if meaning in correctMeanings:
-                    if meaning not in chosenMeanings:                        
-                        chosenMeanings.add(meaning)
-                        knownMeanings += 1
-                        print(f"✓ Dobrze! Pozostało: {len(correctMeanings) - knownMeanings}")
-
+                    if meaning not in choosenWord:
+                        choosenWord.add(meaning)
+                        score += 1
                     else:
                         print("Podane słowo już zostało dodane, podaj kolejne tłumaczenie ")
+                        wordRepeated = True
                         attempts += 1 
 
                         if attempts >= max_attempts:
@@ -98,20 +94,17 @@ def start_learning(wordsQuantity:int) -> None: #nauka
                             wordToPractice.append(el[0])
                             check_if_word_exist(*el[:4])
                             break                           
-                
-            if knownMeanings == len(correctMeanings):
-                score += 1
-            else:
-                print(f"Znasz {knownMeanings} z {len(correctMeanings)} znaczeń")
-                wordToPractice.append(el[0])
-                check_if_word_exist(*el[:4])    
-        
+                else:
+                    score += 0
+                    wordToPractice.append(el[0])
+                    check_if_word_exist(*el[:4])
 
         else:   
             meaning = input("Podaj znaczenie:  ") 
             if meaning == correctMeanings[0]:
                 score += 1        
             else:
+                score += 0
                 wordToPractice.append(el[0])
                 check_if_word_exist(*el[:4])
 
