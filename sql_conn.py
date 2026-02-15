@@ -21,28 +21,19 @@ def check_if_table_exist() -> tuple[bool,list[str]]: #sprawdzanie czy DB istnien
                 AND name = ?
                 """
                 cursor.execute(sqlquery,(name,))
-                existingTablesDb.append(cursor.fetchone())
-
-            for i,exist in enumerate(existingTablesDb):
-
-                if exist is not None:
-                    if exist[0] == tableNames[i]:
-                        score += 1
-                elif exist is None:
-                    notExistingTablesDb.append(tableNames[i])
-                    score += 0
-
-            if score != len(tableNames):
-                return False,notExistingTablesDb
-            else:    
-                return True,[]    
+                if cursor.fetchone() is None:
+                    notExistingTablesDb.append(name)
+            
+            allExist = len(notExistingTablesDb) == 0
+            connection.commit()
+            
+            return allExist, notExistingTablesDb
 
     except sqlite3.Error as e:
         print(f"Error: {e}")
-        return True,[]
+        return False,[]
     
-    finally:
-        connection.commit()
+
 
 def create_tables(missingTables: list[str]) -> None: #tworzenie tabeli
 
@@ -75,13 +66,11 @@ def create_tables(missingTables: list[str]) -> None: #tworzenie tabeli
                     cursor.execute(query1.format(tableName = name))
 
 
+            connection.commit()
         except sqlite3.Error as e:
             print(f"Error: {e}")
-        
-        finally:
-            connection.commit()
-            
-            
+            raise
+                
 def check_if_word_exist(wordToSearch:str,
                         meaning1:str, 
                         meaning2:str | None = None,
@@ -99,12 +88,10 @@ def check_if_word_exist(wordToSearch:str,
             if check is None:
                 insert_word_to_DB(wordToSearch,meaning1,meaning2,meaning3)
                 
+            connection.commit()
     except sqlite3.Error as e:
         print(f"Nie udało się sprawdzić czy słowa istnieją w bazie danych. Error type: {e}")
     
-    finally:
-        connection.commit()
-
 def insert_word_to_DB(wordToAdd:str,
                       meaningToAdd1:str,
                       meaningToAdd2:str | None = None, 
@@ -115,10 +102,9 @@ def insert_word_to_DB(wordToAdd:str,
             cursor = connection.cursor()
             cursor.execute("INSERT INTO WordsToPractice (word,meaning1,meaning2,meaning3) VALUES (?,?,?,?)",
             (wordToAdd,meaningToAdd1,meaningToAdd2,meaningToAdd3))
+            connection.commit()
         except sqlite3.Error as e:
             print("Nie udało się dodać słów do bazy danych. Error type: {e}")
-        finally:
-            connection.commit()
 
 def check_if_google_sheet_updated() -> int:
     with sqlite3.connect(dbName) as connection:
@@ -130,14 +116,12 @@ def check_if_google_sheet_updated() -> int:
 
             cursor.execute(sqlQuery)
             dbLength:int = cursor.fetchone()
+            connection.commit()
 
             return dbLength[0]
         except sqlite3.Error as e:
             print("Error occured : {e}")
             
-        finally:
-            connection.commit()
-
 def add_word_to_main_db(listOfWords:list[str]):
     sqlQuery = """
     INSERT INTO WordsFromGoogleSheet (word, meaning1,meaning2,meaning3)
@@ -148,11 +132,10 @@ def add_word_to_main_db(listOfWords:list[str]):
             cursor = connection.cursor()
             for row in listOfWords:
                 cursor.execute(sqlQuery,(row[0],row[1],row[2],row[3]))
+                connection.commit()
         except sqlite3.Error as e:
             print(f"Error: {e}")
-        finally:
-            connection.commit()
-
+      
 
 if __name__ == "__main__":
     (status,missingTables) = check_if_table_exist()

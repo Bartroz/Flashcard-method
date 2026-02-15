@@ -98,6 +98,7 @@ def start_learning(wordsList:list[str],wordsQuantity:int) -> None: #nauka
                     print("Błędne znaczenie")
 
             if (len(choosenWord)) == len(correctMeanings):
+
                 if len(correctMeanings) == knownMeaning:
                     print("Gratulacje, znasz wszystkie znaczenia tego słowa!")
                     score += 1
@@ -105,7 +106,7 @@ def start_learning(wordsList:list[str],wordsQuantity:int) -> None: #nauka
                     print(f"Znasz {knownMeaning} z {len(correctMeanings)} znaczeń")
                     wordToPractice.append(el[0])
                     check_if_word_exist(*el[:4])
-                    break
+                    # break
                     
         else:   
             meaning = input("Podaj znaczenie:  ") 
@@ -127,17 +128,28 @@ def main() -> None:
     
     while (True):
         words = split_data_to_rows()
-        quantity = int(input("Wybierz ilość słów do powtórzenia:  "))
+        quantity_input = input("Wybierz ilość słów do powtórzenia:  ") 
+
+        if not quantity_input:
+            print("To pole nie może być puste!")
+            continue
+
+        try:
+            quantity = int(quantity_input)
+        except ValueError:
+            print("Wpisana wartość musi być liczbą całkowitą")
+            continue
 
         if  quantity <= 0 or quantity > 100 :
             print("Podaj poprawną wartość z zakresu od 1 do 100")
             continue
-      
-        start_learning(words,quantity)
 
+        start_learning(words,quantity)
+        break
 
 if __name__ == "__main__":
     main()
+
 
     
 
