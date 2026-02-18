@@ -147,8 +147,37 @@ def main() -> None:
         start_learning(words,quantity)
         break
 
+def choose_program() -> None:
+
+    print("\nWitam w aplikacji do nauki słów metodą fiszek!, wybierz swoją aktywność:")
+    print("\n1. Aktualizacja bazy słów")
+    print("\n2. Nauka nowych słów")
+    print("\n3. Kontynuacja nauki już poznanych słów")
+    print("\n4. Powtarzanie nieopanowanych słów")
+
+    while (True):
+        userChoice_input: str = input("\nWybierz swój program: ")
+
+        if not userChoice_input:
+            print("To pole nie może być puste!") 
+            continue
+
+        try:
+            userChoise:int = int(userChoice_input)  
+        except ValueError:
+            print("Podana wartość musi być liczbą całkowitą!")
+            continue
+
+        if userChoise < 1 or userChoise > 4:
+            print("Podaj poprawną wartość z zakresu od 1 do 4")
+            continue
+
+        if userChoise == 2:
+            main()
+            break
+
 if __name__ == "__main__":
-    main()
+    choose_program()
 
 
     
