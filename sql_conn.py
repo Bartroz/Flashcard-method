@@ -1,143 +1,121 @@
 import sqlite3
+from contextlib import contextmanager
 
-tableNames:list[str] = ["WordsFromGoogleSheet","LearnedWords", "WordsToPractice","DbDataInfo" ]
+tableName:str = "Words"
 dbName:str = "GermanLearning.db"
 
-def check_if_table_exist() -> tuple[bool,list[str]]: #sprawdzanie czy DB istnienią - sprawdzane przy uruchomieniu
 
-    existingTablesDb:list[str] = []
-    notExistingTablesDb:list[str] = []
-    score:int = 0
+def check_if_table_exist() -> bool: #sprawdzanie czy DB istnienią - sprawdzane przy uruchomieniu
 
     try:
         with sqlite3.connect(dbName) as connection:
             cursor = connection.cursor()
-            for name in tableNames:
+            sqlquery = """
+            SELECT name 
+            FROM sqlite_master
+            WHERE type = 'table'
+            AND name = ?
+            """
+            cursor.execute(sqlquery,(tableName,))
+            if cursor.fetchone() is None:
+                tableExist = False
+            else: 
+                tableExist = True
 
-                sqlquery = """
-                SELECT name 
-                FROM sqlite_master
-                WHERE type = 'table'
-                AND name = ?
-                """
-                cursor.execute(sqlquery,(name,))
-                if cursor.fetchone() is None:
-                    notExistingTablesDb.append(name)
-            
-            allExist = len(notExistingTablesDb) == 0
-            connection.commit()
-            
-            return allExist, notExistingTablesDb
+            return tableExist
 
     except sqlite3.Error as e:
         print(f"Error: {e}")
-        return False,[]
+        return False
     
-
-
-def create_tables(missingTables: list[str]) -> None: #tworzenie tabeli
+def create_table(missingTable: str) -> None: #tworzenie tabeli
 
     query1 = """
     CREATE Table {tableName} (
-    id INTEGER PRIMARY KEY NOT NULL,
-    word TEXT NOT NULL,
-    meaning1 TEXT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    word TEXT NOT NULL UNIQUE,
+    meaning1 TEXT NOT NULL,
     meaning2 TEXT,
-    meaning3 TEXT
-    ) 
+    meaning3 TEXT,
+    box INTEGER DEFAULT 0,
+    total_attempts INTEGER DEFAULT 0,
+    total_correct INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_reviewed_at TIMESTAMP
+    ); 
     """
 
-    query2 = """
-    CREATE Table {tableName} (
-    id INTEGER PRIMARY KEY,
-    length INT
-    )
-    """
-
-    with sqlite3.connect(dbName) as connection:
-        try:
-            cursor = connection.cursor()
-            
-            for name in missingTables:
-                
-                if name == "DbDataInfo":
-                    cursor.execute(query2.format(tableName = name))
-                else:
-                    cursor.execute(query1.format(tableName = name))
-
-
-            connection.commit()
-        except sqlite3.Error as e:
-            print(f"Error: {e}")
-            raise
-                
-def check_if_word_exist(wordToSearch:str,
-                        meaning1:str, 
-                        meaning2:str | None = None,
-                        meaning3:str | None = None) -> None: #sprawdzanie czy słowo istnieje w DB
     try:
         with sqlite3.connect(dbName) as connection:
-            
             cursor = connection.cursor()
-            sqlQuery:str = """
-            Select word from WordsToPractice where word = ?
-            """
-            cursor.execute(sqlQuery,(wordToSearch,))
-            check = cursor.fetchone()
-
-            if check is None:
-                insert_word_to_DB(wordToSearch,meaning1,meaning2,meaning3)
-                
+            cursor.execute(query1.format(tableName = missingTable))
             connection.commit()
     except sqlite3.Error as e:
-        print(f"Nie udało się sprawdzić czy słowa istnieją w bazie danych. Error type: {e}")
-    
+        print(f"Błąd tworzenia tabel: {e}")
+        connection.rollback()
+        raise
+                
 def insert_word_to_DB(wordToAdd:str,
                       meaningToAdd1:str,
                       meaningToAdd2:str | None = None, 
                       meaningToAdd3:str | None= None) -> None:
     
-    with sqlite3.connect(dbName) as connection:
-        try:
+    try:
+        with sqlite3.connect(dbName) as connection:
             cursor = connection.cursor()
-            cursor.execute("INSERT INTO WordsToPractice (word,meaning1,meaning2,meaning3) VALUES (?,?,?,?)",
+            cursor.execute("INSERT INTO Words (word,meaning1,meaning2,meaning3) VALUES (?,?,?,?)",
             (wordToAdd,meaningToAdd1,meaningToAdd2,meaningToAdd3))
             connection.commit()
-        except sqlite3.Error as e:
-            print("Nie udało się dodać słów do bazy danych. Error type: {e}")
+
+    except sqlite3.Error as e:
+            print(f"Nie udało się dodać słów do bazy danych. Error type: {e}")
 
 def check_if_google_sheet_updated() -> int:
-    with sqlite3.connect(dbName) as connection:
-        try:
+    try:
+        with sqlite3.connect(dbName) as connection:
             cursor = connection.cursor()
             sqlQuery = """
-            SELECT COUNT(*) FROM WordsFromGoogleSheet
+            SELECT COUNT(*) FROM Words
             """
 
             cursor.execute(sqlQuery)
             dbLength:int = cursor.fetchone()
-            connection.commit()
 
-            return dbLength[0]
-        except sqlite3.Error as e:
-            print("Error occured : {e}")
+            return dbLength[0] if dbLength else 0
+    except sqlite3.Error as e:
+            print(f"Error occured : {e}")
             
 def add_word_to_main_db(listOfWords:list[str]):
+
     sqlQuery = """
-    INSERT INTO WordsFromGoogleSheet (word, meaning1,meaning2,meaning3)
+    INSERT or IGNORE INTO Words (word, meaning1, meaning2, meaning3)
     VALUES (?,?,?,?)
     """
-    with sqlite3.connect(dbName) as connection:
-        try:
+    try:
+        with sqlite3.connect(dbName) as connection:
             cursor = connection.cursor()
+            normalizedWords:list[str] = []
             for row in listOfWords:
-                cursor.execute(sqlQuery,(row[0],row[1],row[2],row[3]))
-                connection.commit()
-        except sqlite3.Error as e:
-            print(f"Error: {e}")
-      
+                word = row[0]
+                meaning1 = row[1]
+                meaning2 = row[2] if len(row) > 2 else None
+                meaning3 = row[3] if len(row) > 3 else None
+                normalizedWords.append((word,meaning1,meaning2,meaning3))
+
+            cursor.executemany(sqlQuery,normalizedWords)
+            connection.commit()
+
+    except sqlite3.Error as e:
+        print(f"Nie można dodać słów do bazy danych!: {e}")
+
+def initialize_database() -> None:
+   
+    status = check_if_table_exist()
+    if not status:
+        create_table(tableName)
+    else:
+        print("✓ Tabela istnieje")
+
 
 if __name__ == "__main__":
-    (status,missingTables) = check_if_table_exist()
-    if not status:
-        create_tables(missingTables)
+    initialize_database()

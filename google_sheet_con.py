@@ -1,5 +1,5 @@
 import gspread, random
-from sql_conn import check_if_word_exist
+from sql_conn import insert_word_to_DB, add_word_to_main_db
 from google.oauth2.service_account import Credentials
 from gspread.exceptions import APIError, SpreadsheetNotFound
 
@@ -13,28 +13,23 @@ sheet = client.open_by_key(sheetID)
 
 worksheets = [sheet.worksheet("Strona1"),sheet.worksheet("Strona2")]
         
-def download_from_database() -> tuple[list,int]: #pobieranie słówek z google sheet
+def download_from_database() -> list[str]: #pobieranie słówek z google sheet
     try:
         record:list[str] = []
         for sh in worksheets:
             record.extend(sh.get_all_values())
-        return record,len(record)
+        examine = check_if_sheet_filled_correctly(record)
+        if examine:
+            return record
     except APIError as e:
         print(f"Błąd API Google Sheets: {e}")
-        return [],0
+        return []
     except SpreadsheetNotFound:
         print("Nie znaleziono arkusza")
-        return [],0
+        return []
 
-def split_data_to_rows() -> list:   #Rodzielanie poszczególnych słówek z arkusza google na poszczególne miejsca w słowniku
-    rows,length = download_from_database()
-    randomNumbers: list[int] = []
-    wordsList:list[str] = []
-
-    for i in range(0,5): #Generowanie 5 losowych cyfr
-        randomNumbers.append(random.randrange(1, length))
-
-    for row in rows:
+def check_if_sheet_filled_correctly(listOfWords:list[str]) -> bool:   #Sprawdzanie czy arkusz google został poprawnie wypełniony
+    for row in listOfWords:
         word = row[0]
         meaning1 = row[1]
         meaning2 = row[2] if len(row) > 2 and row[2] else None
@@ -46,16 +41,12 @@ def split_data_to_rows() -> list:   #Rodzielanie poszczególnych słówek z arku
         if meaning3 and not meaning2:
             raise ValueError("Kolumna 3 nie może istnieć bez kolumny 2")
 
-        if meaning3:
-            wordsList.append((word,meaning1,meaning2,meaning3))
-        elif meaning2:
-            wordsList.append((word,meaning1,meaning2))
-        else:
-            wordsList.append((word,meaning1))
+    return True
 
-    return wordsList
+def normalize_spaces(text: str) -> str:
+    return ' '.join(text.split())
 
-def start_learning(wordsList:list[str],wordsQuantity:int) -> None: #nauka
+def start_learning(wordsList:list[str],wordsQuantity:int) -> None: #nauka 
     random.shuffle(wordsList)
     score: int = 0
     max_attempts: int = 3
@@ -63,7 +54,7 @@ def start_learning(wordsList:list[str],wordsQuantity:int) -> None: #nauka
 
     for i,el in enumerate(wordsList[:wordsQuantity]):
         print(f"{i+1} : {el[0]}")
-        correctMeanings = [m.lower() for m in el[1:] if m]
+        correctMeanings = [m.lower().strip() for m in el[1:] if m]
         
         if len(correctMeanings)> 1:
             choosenWord:set[str] = set()
@@ -72,9 +63,11 @@ def start_learning(wordsList:list[str],wordsQuantity:int) -> None: #nauka
 
             while (len(choosenWord) < len(correctMeanings)) :
                 meaning = input(f"Podaj wszystkie znaczenia ({len(correctMeanings)}):  ").strip().lower()
+                meaning = normalize_spaces(meaning)
                 
                 if not meaning:
                     print("Musisz coś wpisać")
+                    attempts += 1
                     continue
 
                 if meaning in choosenWord:                       
@@ -84,7 +77,7 @@ def start_learning(wordsList:list[str],wordsQuantity:int) -> None: #nauka
                     if attempts >= max_attempts:
                         print("Nie udało się wytypować wszystkich znaczeń słowa")
                         wordToPractice.append(el[0])
-                        check_if_word_exist(*el[:4])
+                        insert_word_to_DB(*el[:4])
                         break  
                     
                     continue
@@ -105,8 +98,7 @@ def start_learning(wordsList:list[str],wordsQuantity:int) -> None: #nauka
                 else:
                     print(f"Znasz {knownMeaning} z {len(correctMeanings)} znaczeń")
                     wordToPractice.append(el[0])
-                    check_if_word_exist(*el[:4])
-                    # break
+                    insert_word_to_DB(*el[:4])
                     
         else:   
             meaning = input("Podaj znaczenie:  ") 
@@ -115,7 +107,7 @@ def start_learning(wordsList:list[str],wordsQuantity:int) -> None: #nauka
                 score += 1        
             else:
                 wordToPractice.append(el[0])
-                check_if_word_exist(*el[:4])
+                insert_word_to_DB(*el[:4])
 
     print(f"Twój wynik to: {score}/{wordsQuantity}")
 
@@ -127,7 +119,8 @@ def start_learning(wordsList:list[str],wordsQuantity:int) -> None: #nauka
 def main() -> None:
     
     while (True):
-        words = split_data_to_rows()
+        words = download_from_database()
+        add_word_to_main_db(words)
         quantity_input = input("Wybierz ilość słów do powtórzenia:  ") 
 
         if not quantity_input:
@@ -154,7 +147,8 @@ def choose_program() -> None:
     print("\n2. Nauka nowych słów")
     print("\n3. Kontynuacja nauki już poznanych słów")
     print("\n4. Powtarzanie nieopanowanych słów")
-
+    print("\n5. Zakończ")
+    
     while (True):
         userChoice_input: str = input("\nWybierz swój program: ")
 
@@ -174,6 +168,9 @@ def choose_program() -> None:
 
         if userChoise == 2:
             main()
+            break
+
+        if userChoise == 5:
             break
 
 if __name__ == "__main__":
