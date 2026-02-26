@@ -1,10 +1,52 @@
 import sqlite3
-
+from contextlib import contextmanager
+from dataclasses import dataclass
 
 tableName:str = "Words"
 dbName:str = "GermanLearning.db"
 
+# @dataclass
+# class DBResult():
+
+
+@contextmanager
+def dbConnection():
+    connection = sqlite3.connect(dbName)
+    cursor = connection.cursor()
+    try:
+        yield cursor
+        connection.commit()
+    except sqlite3.Error as e:
+        print(f"Wystąpił błąd: {e}")
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def check_if_table_exist() -> bool: #sprawdzanie czy DB istnienią - sprawdzane przy uruchomieniu
+
+    try:
+        with dbConnection() as cursor:
+            sqlquery = """
+            SELECT name 
+            FROM sqlite_master
+            WHERE type = 'table'
+            AND name = ?
+            """
+            cursor.execute(sqlquery,(tableName,))
+            if cursor.fetchone() is None:
+                tableExist = False
+            else: 
+                tableExist = True
+
+            return tableExist
+
+    except sqlite3.Error as e:
+        print(f"Error: {e}")
+        return False
+    
+# def check_if_table_exist() -> bool: #sprawdzanie czy DB istnienią - sprawdzane przy uruchomieniu
 
     try:
         with sqlite3.connect(dbName) as connection:
@@ -55,12 +97,11 @@ def create_table(missingTable: str) -> None: #tworzenie tabeli
                 
 def check_if_google_sheet_updated() -> int:
     try:
-        with sqlite3.connect(dbName) as connection:
-            cursor = connection.cursor()
+        with dbConnection() as cursor:
+
             sqlQuery = """
             SELECT COUNT(*) FROM Words
             """
-
             cursor.execute(sqlQuery)
             dbLength:int = cursor.fetchone()
 
@@ -101,8 +142,9 @@ def download_words_from_DB(box:int = 0) -> list[str]:
             """
 
             cursor.execute(sqlQuery,(box,))
-            for el in cursor.fetchall():
-                print(el)
+            # for el in cursor.fetchall():
+            #     print(el)
+            return cursor.fetchall()
     except sqlite3.Error as e:
         print(f"Nie udało się pobrać słów z bazy danych: {e}")
         return []
