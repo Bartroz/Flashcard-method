@@ -1,9 +1,8 @@
 import sqlite3
-from contextlib import contextmanager
+
 
 tableName:str = "Words"
 dbName:str = "GermanLearning.db"
-
 
 def check_if_table_exist() -> bool: #sprawdzanie czy DB istnienią - sprawdzane przy uruchomieniu
 
@@ -31,7 +30,7 @@ def check_if_table_exist() -> bool: #sprawdzanie czy DB istnienią - sprawdzane 
 def create_table(missingTable: str) -> None: #tworzenie tabeli
 
     query1 = """
-    CREATE Table {tableName} (
+    CREATE Table IF NOT EXISTS {tableName} (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     word TEXT NOT NULL UNIQUE,
     meaning1 TEXT NOT NULL,
@@ -52,24 +51,8 @@ def create_table(missingTable: str) -> None: #tworzenie tabeli
             connection.commit()
     except sqlite3.Error as e:
         print(f"Błąd tworzenia tabel: {e}")
-        connection.rollback()
         raise
                 
-def insert_word_to_DB(wordToAdd:str,
-                      meaningToAdd1:str,
-                      meaningToAdd2:str | None = None, 
-                      meaningToAdd3:str | None= None) -> None:
-    
-    try:
-        with sqlite3.connect(dbName) as connection:
-            cursor = connection.cursor()
-            cursor.execute("INSERT INTO Words (word,meaning1,meaning2,meaning3) VALUES (?,?,?,?)",
-            (wordToAdd,meaningToAdd1,meaningToAdd2,meaningToAdd3))
-            connection.commit()
-
-    except sqlite3.Error as e:
-            print(f"Nie udało się dodać słów do bazy danych. Error type: {e}")
-
 def check_if_google_sheet_updated() -> int:
     try:
         with sqlite3.connect(dbName) as connection:
@@ -88,7 +71,7 @@ def check_if_google_sheet_updated() -> int:
 def add_word_to_main_db(listOfWords:list[str]):
 
     sqlQuery = """
-    INSERT or IGNORE INTO Words (word, meaning1, meaning2, meaning3)
+    INSERT OR IGNORE INTO Words (word, meaning1, meaning2, meaning3)
     VALUES (?,?,?,?)
     """
     try:
@@ -108,6 +91,23 @@ def add_word_to_main_db(listOfWords:list[str]):
     except sqlite3.Error as e:
         print(f"Nie można dodać słów do bazy danych!: {e}")
 
+def download_words_from_DB(box:int = 0) -> list[str]:
+    try:
+        with sqlite3.connect(dbName) as connection:
+            cursor = connection.cursor()
+            sqlQuery = """
+            SELECT word, meaning1, meaning2, meaning3 FROM Words
+            WHERE box = ?;
+            """
+
+            cursor.execute(sqlQuery,(box,))
+            for el in cursor.fetchall():
+                print(el)
+    except sqlite3.Error as e:
+        print(f"Nie udało się pobrać słów z bazy danych: {e}")
+        return []
+
+
 def initialize_database() -> None:
    
     status = check_if_table_exist()
@@ -118,4 +118,4 @@ def initialize_database() -> None:
 
 
 if __name__ == "__main__":
-    initialize_database()
+    download_words_from_DB()

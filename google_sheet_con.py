@@ -1,5 +1,5 @@
 import gspread, random
-from sql_conn import insert_word_to_DB, add_word_to_main_db
+from sql_conn import insert_word_to_DB, add_word_to_main_db, check_if_google_sheet_updated, download_words_from_DB
 from google.oauth2.service_account import Credentials
 from gspread.exceptions import APIError, SpreadsheetNotFound
 
@@ -13,7 +13,7 @@ sheet = client.open_by_key(sheetID)
 
 worksheets = [sheet.worksheet("Strona1"),sheet.worksheet("Strona2")]
         
-def download_from_database() -> list[str]: #pobieranie słówek z google sheet
+def download_from_googleSheets() -> list[str]: #pobieranie słówek z google sheet
     try:
         record:list[str] = []
         for sh in worksheets:
@@ -27,6 +27,13 @@ def download_from_database() -> list[str]: #pobieranie słówek z google sheet
     except SpreadsheetNotFound:
         print("Nie znaleziono arkusza")
         return []
+
+def check_if_sync_required(updateRequired:bool = False) -> None:
+    words = download_from_googleSheets()
+    dbLenght = check_if_google_sheet_updated()
+
+    if len(words) > dbLenght or dbLenght == 0 or updateRequired:
+        add_word_to_main_db(words)
 
 def check_if_sheet_filled_correctly(listOfWords:list[str]) -> bool:   #Sprawdzanie czy arkusz google został poprawnie wypełniony
     for row in listOfWords:
@@ -46,7 +53,7 @@ def check_if_sheet_filled_correctly(listOfWords:list[str]) -> bool:   #Sprawdzan
 def normalize_spaces(text: str) -> str:
     return ' '.join(text.split())
 
-def start_learning(wordsList:list[str],wordsQuantity:int) -> None: #nauka 
+def start_learning(wordsList:tuple[str],wordsQuantity:int) -> None: #nauka 
     random.shuffle(wordsList)
     score: int = 0
     max_attempts: int = 3
@@ -119,8 +126,6 @@ def start_learning(wordsList:list[str],wordsQuantity:int) -> None: #nauka
 def main() -> None:
     
     while (True):
-        words = download_from_database()
-        add_word_to_main_db(words)
         quantity_input = input("Wybierz ilość słów do powtórzenia:  ") 
 
         if not quantity_input:
@@ -137,8 +142,13 @@ def main() -> None:
             print("Podaj poprawną wartość z zakresu od 1 do 100")
             continue
 
-        start_learning(words,quantity)
-        break
+        words = download_words_from_DB()
+        if len(words) == 0:
+            print("Nie można uruchomić programu, nie udało się pobrać słów z bazy danych  ")
+            break
+        else:
+            start_learning(words,quantity)
+            break
 
 def choose_program() -> None:
 
@@ -162,9 +172,13 @@ def choose_program() -> None:
             print("Podana wartość musi być liczbą całkowitą!")
             continue
 
-        if userChoise < 1 or userChoise > 4:
+        if userChoise < 1 or userChoise > 5:
             print("Podaj poprawną wartość z zakresu od 1 do 4")
             continue
+        
+        if userChoise == 1:
+            check_if_sync_required(True)
+            break
 
         if userChoise == 2:
             main()
