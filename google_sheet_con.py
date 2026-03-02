@@ -1,5 +1,5 @@
 import gspread, random
-from sql_conn import insert_word_to_DB, add_word_to_main_db, check_if_google_sheet_updated, download_words_from_DB
+from sql_conn import  add_word_to_main_db, check_if_google_sheet_updated, download_words_from_DB,score_learned_words
 from google.oauth2.service_account import Credentials
 from gspread.exceptions import APIError, SpreadsheetNotFound
 
@@ -28,7 +28,7 @@ def download_from_googleSheets() -> list[str]: #pobieranie słówek z google she
         print("Nie znaleziono arkusza")
         return []
 
-def check_if_sync_required(updateRequired:bool = False) -> None:
+def check_if_sync_required(updateRequired:bool = False) -> None: #sprawdzanie czy wymagana jest synchronizacja słów z google sheet
     words = download_from_googleSheets()
     dbLenght = check_if_google_sheet_updated()
 
@@ -50,7 +50,7 @@ def check_if_sheet_filled_correctly(listOfWords:list[str]) -> bool:   #Sprawdzan
 
     return True
 
-def normalize_spaces(text: str) -> str:
+def normalize_spaces(text: str) -> str: #czyszczenie whitespaceów z google sheet jeżeli jakieś przypadkie by się pojawiły
     return ' '.join(text.split())
 
 def start_learning(wordsList:tuple[str],wordsQuantity:int) -> None: #nauka 
@@ -58,10 +58,11 @@ def start_learning(wordsList:tuple[str],wordsQuantity:int) -> None: #nauka
     score: int = 0
     max_attempts: int = 3
     wordToPractice:list[str] = []
+    wordsToEvaluate: list[tuple[str,bool]] = []
 
     for i,el in enumerate(wordsList[:wordsQuantity]):
         print(f"{i+1} : {el[0]}")
-        correctMeanings = [m.lower().strip() for m in el[1:] if m]
+        correctMeanings = [normalize_spaces(m.lower().strip()) for m in el[1:] if m]
         
         if len(correctMeanings)> 1:
             choosenWord:set[str] = set()
@@ -70,7 +71,6 @@ def start_learning(wordsList:tuple[str],wordsQuantity:int) -> None: #nauka
 
             while (len(choosenWord) < len(correctMeanings)) :
                 meaning = input(f"Podaj wszystkie znaczenia ({len(correctMeanings)}):  ").strip().lower()
-                meaning = normalize_spaces(meaning)
                 
                 if not meaning:
                     print("Musisz coś wpisać")
@@ -84,7 +84,6 @@ def start_learning(wordsList:tuple[str],wordsQuantity:int) -> None: #nauka
                     if attempts >= max_attempts:
                         print("Nie udało się wytypować wszystkich znaczeń słowa")
                         wordToPractice.append(el[0])
-                        insert_word_to_DB(*el[:4])
                         break  
                     
                     continue
@@ -102,19 +101,23 @@ def start_learning(wordsList:tuple[str],wordsQuantity:int) -> None: #nauka
                 if len(correctMeanings) == knownMeaning:
                     print("Gratulacje, znasz wszystkie znaczenia tego słowa!")
                     score += 1
+                    wordsToEvaluate.append((el[0],True))
                 else:
                     print(f"Znasz {knownMeaning} z {len(correctMeanings)} znaczeń")
                     wordToPractice.append(el[0])
-                    insert_word_to_DB(*el[:4])
+                    wordsToEvaluate.append((el[0],False))
                     
         else:   
-            meaning = input("Podaj znaczenie:  ") 
+            meaning = normalize_spaces(input("Podaj znaczenie: ").strip().lower())
 
             if meaning == correctMeanings[0]:
                 score += 1        
+                wordsToEvaluate.append((el[0],True))
             else:
                 wordToPractice.append(el[0])
-                insert_word_to_DB(*el[:4])
+                wordsToEvaluate.append((el[0],False))
+        
+    score_learned_words(wordsToEvaluate)
 
     print(f"Twój wynik to: {score}/{wordsQuantity}")
 
@@ -123,7 +126,7 @@ def start_learning(wordsList:tuple[str],wordsQuantity:int) -> None: #nauka
     else:
         print("Gratulacje, możesz iść dalej!")
 
-def main() -> None:
+def main(scenario:int = 0) -> None: 
     
     while (True):
         quantity_input = input("Wybierz ilość słów do powtórzenia:  ") 
@@ -142,7 +145,7 @@ def main() -> None:
             print("Podaj poprawną wartość z zakresu od 1 do 100")
             continue
 
-        words = download_words_from_DB()
+        words = download_words_from_DB(scenario)
         if len(words) == 0:
             print("Nie można uruchomić programu, nie udało się pobrać słów z bazy danych  ")
             break
@@ -150,7 +153,7 @@ def main() -> None:
             start_learning(words,quantity)
             break
 
-def choose_program() -> None:
+def choose_program() -> None: #wybór programu 
 
     print("\nWitam w aplikacji do nauki słów metodą fiszek!, wybierz swoją aktywność:")
     print("\n1. Aktualizacja bazy słów")
@@ -181,8 +184,16 @@ def choose_program() -> None:
             break
 
         if userChoise == 2:
-            main()
+            main(0)
             break
+
+        # if userChoise == 3:
+        #     main(1)
+        #     break
+
+        # if userChoise == 4:
+        #     main(2)
+        #     break
 
         if userChoise == 5:
             break
