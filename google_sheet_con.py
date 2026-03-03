@@ -1,7 +1,10 @@
 import gspread, random
-from sql_conn import  add_word_to_main_db, check_if_google_sheet_updated, download_words_from_DB,score_learned_words
+from dataclasses import dataclass
+from typing import Optional
 from google.oauth2.service_account import Credentials
 from gspread.exceptions import APIError, SpreadsheetNotFound
+
+from sql_conn import  add_word_to_main_db, check_if_google_sheet_updated, download_words_from_DB,score_learned_words
 
 scopes:list[str] = ["https://www.googleapis.com/auth/spreadsheets"]
 sheetID = "1SEylIRcFcGVEcBMnGhRyeCMhphbjbIFaWT_OYKdvCOk"
@@ -12,7 +15,21 @@ client = gspread.authorize(creds)
 sheet = client.open_by_key(sheetID)
 
 worksheets = [sheet.worksheet("Strona1"),sheet.worksheet("Strona2")]
-        
+
+
+@dataclass 
+class Results():
+    success: bool
+    data: Optional[str] = None
+    error: Optional[str] = None
+
+    @property
+    def has_data(self) -> bool:
+        if self.data is int:
+            return self.data is not None and self.data > 0
+        else:
+            return self.data is not None and len(self.data) > 0
+
 def download_from_googleSheets() -> list[str]: #pobieranie słówek z google sheet
     try:
         record:list[str] = []
@@ -20,20 +37,41 @@ def download_from_googleSheets() -> list[str]: #pobieranie słówek z google she
             record.extend(sh.get_all_values())
         examine = check_if_sheet_filled_correctly(record)
         if examine:
-            return record
+            return Results(success=True, data = record)
+        
     except APIError as e:
         print(f"Błąd API Google Sheets: {e}")
-        return []
+        return Results(success=False, error= str(e))
+    
     except SpreadsheetNotFound:
         print("Nie znaleziono arkusza")
-        return []
+        return Results(success=False, error= str(e))
 
 def check_if_sync_required(updateRequired:bool = False) -> None: #sprawdzanie czy wymagana jest synchronizacja słów z google sheet
-    words = download_from_googleSheets()
-    dbLenght = check_if_google_sheet_updated()
 
-    if len(words) > dbLenght or dbLenght == 0 or updateRequired:
-        add_word_to_main_db(words)
+    sheetResults = download_from_googleSheets()
+    
+    if sheetResults.success:
+        if sheetResults.has_data:
+            print("Pobrano słowa z arkusza google")
+        else:
+            print("Brak słów w arkuszu")
+    else:
+        print(f"{sheetResults.error}")
+
+    dbResult = check_if_google_sheet_updated()
+
+    if dbResult.success:
+        if dbResult.has_data:
+            print("Pobrano słowa z bazy danych")
+        else:
+            print("Brak słów w arkuszu")
+    else:
+        print(f"{dbResult.error}")
+
+    if sheetResults.success and dbResult.success:
+        if len(sheetResults.data) > dbResult.data or dbResult.data == 0 or updateRequired:
+            add_word_to_main_db(sheetResults.data)
 
 def check_if_sheet_filled_correctly(listOfWords:list[str]) -> bool:   #Sprawdzanie czy arkusz google został poprawnie wypełniony
     for row in listOfWords:
@@ -146,11 +184,11 @@ def main(scenario:int = 0) -> None:
             continue
 
         words = download_words_from_DB(scenario)
-        if len(words) == 0:
+        if len(words.data) == 0:
             print("Nie można uruchomić programu, nie udało się pobrać słów z bazy danych  ")
             break
         else:
-            start_learning(words,quantity)
+            start_learning(words.data,quantity)
             break
 
 def choose_program() -> None: #wybór programu 

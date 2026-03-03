@@ -1,13 +1,23 @@
 import sqlite3
 from contextlib import contextmanager
 from dataclasses import dataclass
+from typing import Optional
 
 tableName:str = "Words"
 dbName:str = "GermanLearning.db"
 
-# @dataclass
-# class DBResult():
+@dataclass
+class DBResult():
+    success: bool
+    data: Optional[list] | int = None
+    error: Optional[str] = None
 
+    @property
+    def has_data(self) -> bool:
+        if type(self.data) is int:
+            return self.data is not None and self.data > 0
+        else:
+            return self.data is not None and len(self.data) > 0
 
 @contextmanager
 def dbConnection():
@@ -24,7 +34,7 @@ def dbConnection():
         connection.close()
 
 
-def check_if_table_exist() -> bool: #sprawdzanie czy DB istnienią - sprawdzane przy uruchomieniu
+def check_if_table_exist() -> bool: #sprawdzanie czy DB istnieją - sprawdzane przy uruchomieniu
 
     try:
         with dbConnection() as cursor:
@@ -43,10 +53,9 @@ def check_if_table_exist() -> bool: #sprawdzanie czy DB istnienią - sprawdzane 
             return tableExist
 
     except sqlite3.Error as e:
-        print(f"Error: {e}")
-        return False
-    
-    
+        print(f"Wyszukiwanie czy tabela istnieje nie powiodło się: {e}")
+        raise
+            
 def create_table(missingTable: str) -> None: #tworzenie tabeli
 
     query1 = """
@@ -71,7 +80,7 @@ def create_table(missingTable: str) -> None: #tworzenie tabeli
         print(f"Błąd tworzenia tabel: {e}")
         raise
                 
-def check_if_google_sheet_updated() -> int:
+def check_if_google_sheet_updated() -> DBResult:
     try:
         with dbConnection() as cursor:
 
@@ -81,10 +90,11 @@ def check_if_google_sheet_updated() -> int:
             cursor.execute(sqlQuery)
             dbLength:int = cursor.fetchone()
 
-            return dbLength[0] if dbLength else 0
+            return DBResult(success=True, data = int(dbLength[0]))
+        
     except sqlite3.Error as e:
-            print(f"Error occured : {e}")
-            return 0
+            print(f"Błąd podczas zliczania słów: {e}")
+            return DBResult(success=False, error = str(e))
 
 def add_word_to_main_db(listOfWords:list[str]) -> None:
 
@@ -109,7 +119,7 @@ def add_word_to_main_db(listOfWords:list[str]) -> None:
         print(f"Nie można dodać słów do bazy danych!: {e}")
         raise
 
-def download_words_from_DB(box:int = 0) -> list[str]:
+def download_words_from_DB(box:int = 0) -> DBResult:
     try:
         with dbConnection() as cursor:
             
@@ -119,11 +129,11 @@ def download_words_from_DB(box:int = 0) -> list[str]:
             """
 
             cursor.execute(sqlQuery,(box,))
-            return cursor.fetchall()
+            return DBResult(success=True, data = cursor.fetchall())
         
     except sqlite3.Error as e:
         print(f"Nie udało się pobrać słów z bazy danych: {e}")
-        return []
+        return DBResult(success=False, error=str(e))
 
 def score_learned_words(wordsToEvaluate: list[tuple[str,bool]]) -> None:
 
@@ -170,12 +180,15 @@ def score_learned_words(wordsToEvaluate: list[tuple[str,bool]]) -> None:
 
 def initialize_database() -> None:
    
-    status = check_if_table_exist()
-    if not status:
-        create_table(tableName)
-    else:
-        print("✓ Tabela istnieje")
-
+    try:
+        if check_if_table_exist():
+            print("✓ Tabela istnieje")
+        else: 
+            create_table(tableName)
+            print(f"Utworzono tabele! {tableName}")
+    except sqlite3.Error as e:
+        print("Błąd podczas inicjacji bazy danych: {e}")
 
 if __name__ == "__main__":
     initialize_database()
+    # check_if_google_sheet_updated()
