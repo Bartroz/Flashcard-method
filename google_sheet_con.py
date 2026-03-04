@@ -1,10 +1,19 @@
 import gspread, random
+import sys
+
 from dataclasses import dataclass
-from typing import Optional
+
 from google.oauth2.service_account import Credentials
 from gspread.exceptions import APIError, SpreadsheetNotFound
 
-from sql_conn import  add_word_to_main_db, check_if_google_sheet_updated, download_words_from_DB,score_learned_words
+from sql_conn import  (
+add_word_to_main_db, 
+check_if_google_sheet_updated, 
+download_new_words_from_DB,
+download_words_for_continuation,
+download_difficult_words,
+score_learned_words, 
+DBResult)
 
 scopes:list[str] = ["https://www.googleapis.com/auth/spreadsheets"]
 sheetID = "1SEylIRcFcGVEcBMnGhRyeCMhphbjbIFaWT_OYKdvCOk"
@@ -16,40 +25,53 @@ sheet = client.open_by_key(sheetID)
 
 worksheets = [sheet.worksheet("Strona1"),sheet.worksheet("Strona2")]
 
+def continueLearning():
+    toContinue:bool = False
+    while True:
+        print("\nCzy chcesz kontynuować dalszą naukę?")
+        print("\t1: Tak")
+        print("\t2: Nie")
+        print("\t3: Powrót do menu głównego")
+        userInput = input("").lower()
 
-@dataclass 
-class Results():
-    success: bool
-    data: Optional[str] = None
-    error: Optional[str] = None
-
-    @property
-    def has_data(self) -> bool:
-        if self.data is int:
-            return self.data is not None and self.data > 0
+        if userInput == "tak" or userInput == "1" :
+            main(0)
+        elif userInput == "nie" or userInput == "2":
+            print("Zakończono działanie programu.")
+            sys.exit(0)
+        elif userInput == "3":
+            choose_program()
         else:
-            return self.data is not None and len(self.data) > 0
-
-def download_from_googleSheets() -> list[str]: #pobieranie słówek z google sheet
+            print("Wpisz prawidłową odpowiedź")
+            continue
+        break
+                    
+def download_from_googleSheets() -> DBResult: #pobieranie słówek z google sheet
     try:
         record:list[str] = []
         for sh in worksheets:
             record.extend(sh.get_all_values())
-        examine = check_if_sheet_filled_correctly(record)
-        if examine:
-            return Results(success=True, data = record)
+
+        if check_if_sheet_filled_correctly(record):
+            return DBResult(success=True, data = record)
+        else:
+            return DBResult(success=False, error="Arkusz niepoprawnie wypełniony")
         
     except APIError as e:
         print(f"Błąd API Google Sheets: {e}")
-        return Results(success=False, error= str(e))
+        return DBResult(success=False, error= str(e))
     
-    except SpreadsheetNotFound:
+    except SpreadsheetNotFound as e:
         print("Nie znaleziono arkusza")
-        return Results(success=False, error= str(e))
+        return DBResult(success=False, error= str(e))
 
 def check_if_sync_required(updateRequired:bool = False) -> None: #sprawdzanie czy wymagana jest synchronizacja słów z google sheet
 
     sheetResults = download_from_googleSheets()
+    dbResult = check_if_google_sheet_updated()
+
+    sheets_count = len(sheetResults.data)
+    db_count = dbResult.data
     
     if sheetResults.success:
         if sheetResults.has_data:
@@ -58,8 +80,6 @@ def check_if_sync_required(updateRequired:bool = False) -> None: #sprawdzanie cz
             print("Brak słów w arkuszu")
     else:
         print(f"{sheetResults.error}")
-
-    dbResult = check_if_google_sheet_updated()
 
     if dbResult.success:
         if dbResult.has_data:
@@ -70,8 +90,12 @@ def check_if_sync_required(updateRequired:bool = False) -> None: #sprawdzanie cz
         print(f"{dbResult.error}")
 
     if sheetResults.success and dbResult.success:
-        if len(sheetResults.data) > dbResult.data or dbResult.data == 0 or updateRequired:
-            add_word_to_main_db(sheetResults.data)
+        if sheets_count > db_count or db_count == 0 or updateRequired:
+            try:
+                add_word_to_main_db(sheetResults.data)
+            except Exception as e:
+                print(f"Błąd z synchronizacją z bazą danych!: {e}")
+
 
 def check_if_sheet_filled_correctly(listOfWords:list[str]) -> bool:   #Sprawdzanie czy arkusz google został poprawnie wypełniony
     for row in listOfWords:
@@ -145,15 +169,22 @@ def start_learning(wordsList:tuple[str],wordsQuantity:int) -> None: #nauka
                     wordToPractice.append(el[0])
                     wordsToEvaluate.append((el[0],False))
                     
-        else:   
-            meaning = normalize_spaces(input("Podaj znaczenie: ").strip().lower())
+        else:
+            while (True):   
+                meaning = normalize_spaces(input("Podaj znaczenie: ").strip().lower())
 
-            if meaning == correctMeanings[0]:
-                score += 1        
-                wordsToEvaluate.append((el[0],True))
-            else:
-                wordToPractice.append(el[0])
-                wordsToEvaluate.append((el[0],False))
+                if not meaning:
+                    print("Musisz coś wpisać")
+                    continue
+
+                if meaning == correctMeanings[0]:
+                    score += 1        
+                    wordsToEvaluate.append((el[0],True))
+                else:
+                    wordToPractice.append(el[0])
+                    wordsToEvaluate.append((el[0],False))
+                    
+                break
         
     score_learned_words(wordsToEvaluate)
 
@@ -163,6 +194,8 @@ def start_learning(wordsList:tuple[str],wordsQuantity:int) -> None: #nauka
         print(f"Słowa, które musisz powtórzyć to: {wordToPractice}")
     else:
         print("Gratulacje, możesz iść dalej!")
+
+    continueLearning()
 
 def main(scenario:int = 0) -> None: 
     
@@ -183,13 +216,24 @@ def main(scenario:int = 0) -> None:
             print("Podaj poprawną wartość z zakresu od 1 do 100")
             continue
 
-        words = download_words_from_DB(scenario)
-        if len(words.data) == 0:
-            print("Nie można uruchomić programu, nie udało się pobrać słów z bazy danych  ")
+
+        if scenario == 0:
+            words = download_new_words_from_DB()
+        elif scenario == 1:
+            words = download_words_for_continuation()
+        elif scenario == 2:
+            words = download_difficult_words() 
+
+        if not words.success:
+            print(f"Błąd pobierania słów: {words.error}")
             break
-        else:
-            start_learning(words.data,quantity)
+
+        if not words.has_data:
+            print("Brak słów w tej komorze")
             break
+       
+        start_learning(words.data,quantity)
+        break
 
 def choose_program() -> None: #wybór programu 
 
@@ -225,15 +269,17 @@ def choose_program() -> None: #wybór programu
             main(0)
             break
 
-        # if userChoise == 3:
-        #     main(1)
-        #     break
+        if userChoise == 3:
+            main(1)
+            break
 
-        # if userChoise == 4:
-        #     main(2)
-        #     break
+        if userChoise == 4:
+            main(2)
+            break
 
         if userChoise == 5:
+            print("Zakończono działanie programu.")
+            sys.exit(0)
             break
 
 if __name__ == "__main__":
