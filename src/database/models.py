@@ -2,6 +2,8 @@ import sqlite3
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Optional, Union
+from pathlib import Path
+from config import DB_PATH
 
 @dataclass
 class DBResult():
@@ -20,7 +22,7 @@ class DBResult():
 
 @contextmanager
 def dbConnection():
-    connection = sqlite3.connect("GermanLearning.db")
+    connection = sqlite3.connect(str(DB_PATH))
     cursor = connection.cursor()
     try:
         yield cursor

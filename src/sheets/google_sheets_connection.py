@@ -1,0 +1,106 @@
+import gspread, sys
+from google.oauth2.service_account import Credentials
+from gspread.exceptions import APIError, SpreadsheetNotFound
+from pathlib import Path
+
+from src.database.models import DBResult
+from src.database.db_validation import check_if_google_sheet_updated
+from src.database.db_process import add_word_to_main_db
+
+scopes:list[str] = ["https://www.googleapis.com/auth/spreadsheets"]
+sheetID = "1SEylIRcFcGVEcBMnGhRyeCMhphbjbIFaWT_OYKdvCOk"
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+print(f"DEBUG: PROJECT_ROOT = {PROJECT_ROOT}\n")
+
+
+BASE_DIR = Path(__file__).resolve().parent
+CREDENTIALS_PATH = BASE_DIR / "src" /"config.py"
+
+creds = Credentials.from_service_account_file(str(CREDENTIALS_PATH), scopes = scopes)
+client = gspread.authorize(creds)
+sheet = client.open_by_key(sheetID)
+
+worksheets = [sheet.worksheet("Strona1"),sheet.worksheet("Strona2")]
+
+def download_from_googleSheets() -> DBResult:
+    """ Pobieranie słów z arkuszy google """ 
+
+    try:
+        record:list[str] = []
+
+        #Pobieranie słów
+        for sh in worksheets:
+            record.extend(sh.get_all_values())
+
+        #Walidacja czy wypełniono poprawnie
+        if check_if_sheet_filled_correctly(record):
+            return DBResult(success=True, data = record)
+        else:
+            return DBResult(success=False, error="Arkusz niepoprawnie wypełniony")
+    
+    #Błąd połączenia z API
+    except APIError as e:
+        print(f"Błąd API Google Sheets: {e}")
+        return DBResult(success=False, error= str(e))
+    
+    #Brak arkusza
+    except SpreadsheetNotFound as e:
+        print("Nie znaleziono arkusza")
+        return DBResult(success=False, error= str(e))
+
+def check_if_sheet_filled_correctly(listOfWords:list[str]) -> bool:
+    """ Spradzanie czy arkusz google został poprawnie wypełniony """
+    
+    #Separacja słów
+    for row in listOfWords:
+        word = row[0]
+        meaning1 = row[1]
+        meaning2 = row[2] if len(row) > 2 and row[2] else None
+        meaning3 = row[3] if len(row) > 3 and row[3] else None
+
+        #Walidacja wypełnienia
+        if not word and not meaning1:
+            raise ValueError("Kolumna 1 i 2 są obowiązkowe")
+        
+        if meaning3 and not meaning2:
+            raise ValueError("Kolumna 3 nie może istnieć bez kolumny 2")
+
+    return True
+
+def check_if_sync_required(updateRequired:bool = False) -> None:
+
+    """ Sprawdzanie czy wymagana jest synchronizacja bazy danych z arkuszem google """
+
+    sheetResults = download_from_googleSheets()
+    dbResult = check_if_google_sheet_updated()
+
+    sheets_count = len(sheetResults.data)
+    db_count = dbResult.data
+    
+
+    if sheetResults.success:
+        if sheetResults.has_data:
+            print("Pobrano słowa z arkusza google")
+        else:
+            print("Brak słów w arkuszu")
+    else:
+        print(f"{sheetResults.error}")
+
+    if dbResult.success:
+        if dbResult.has_data:
+            print("Pobrano słowa z bazy danych")
+        else:
+            print("Baza danych jest pusta")
+    else:
+        print(f"{dbResult.error}")
+
+    if sheetResults.success and dbResult.success:
+        if sheets_count > db_count or db_count == 0 or updateRequired:
+            try:
+                add_word_to_main_db(sheetResults.data)
+            except Exception as e:
+                print(f"Błąd z synchronizacją z bazą danych!: {e}")
+
+

@@ -1,1 +1,25 @@
-GermanLearning.db
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+
+# Database
+*.db
+*.db-journal
+
+# Credentials (VERY IMPORTANT!)
+credentials.json
+*.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

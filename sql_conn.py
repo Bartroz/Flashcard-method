@@ -46,7 +46,7 @@ def check_if_table_exist() -> bool: #sprawdzanie czy DB istnieją - sprawdzane p
             AND name = ?
             """
             cursor.execute(sqlquery,(tableName,))
-            return cursor.fetchone() is None
+            return cursor.fetchone() is not None
 
     except sqlite3.Error as e:
         print(f"Wyszukiwanie czy tabela istnieje nie powiodło się: {e}")
@@ -109,7 +109,7 @@ def add_word_to_main_db(listOfWords:list[str]) -> bool:
                 normalizedWords.append((word,meaning1,meaning2,meaning3))
 
             cursor.executemany(sqlQuery,normalizedWords)
-            print("/tDodano słowa do bazy danych!")
+            print("\tDodano słowa do bazy danych!")
 
             return True
     except sqlite3.Error as e:
@@ -132,18 +132,15 @@ def download_new_words_from_DB() -> DBResult:
         print(f"Nie udało się pobrać słów z bazy danych: {e}")
         return DBResult(success=False, error=str(e))
 
-def download_words_for_continuation(box:int) -> DBResult:
+def download_words_for_continuation() -> DBResult:
     try:
         with dbConnection() as cursor:
 
             sqlQuery = """
-            SELECT word, meaning1, meaning2, meaning3,
-                total_attempts,
-                total_correct,
-                ROUND(total_correct * 100.0 / NULLIF(total_attempts, 0), 1) AS success_rate
+            SELECT word, meaning1, meaning2, meaning3
             FROM Words
             WHERE box >= 1
-                AND box <= 5
+                AND box < 5
                 AND (
                 total_attempts < 3
                 OR
@@ -163,10 +160,7 @@ def download_difficult_words() -> DBResult:
         with dbConnection() as cursor:
 
             sqlQuery = """
-            SELECT word, meaning1, meaning2, meaning3,
-                total_attempts,
-                total_correct,
-                ROUND(total_correct * 100.0 / total_attempts, 1) AS success_rate
+            SELECT word, meaning1, meaning2, meaning3
             FROM Words
             WHERE total_attempts >= 3
                 AND (total_correct * 1.0 / total_attempts) < 0.6
@@ -213,7 +207,7 @@ def score_learned_words(wordsToEvaluate: list[tuple[str,bool]]) -> None:
                 cursor.executemany(sqlIncorrect,incorrect_words)
 
     except sqlite3.Error as e:
-        print(f"Błąd podczas akutalizacji bazy danych: {e}")
+        print(f"Błąd podczas aktualizacji bazy danych: {e}")
         raise
 
 def initialize_database() -> None:
