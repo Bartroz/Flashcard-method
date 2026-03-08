@@ -1,7 +1,7 @@
 
 tableExistQuery: str = """ SELECT name 
                         FROM sqlite_master
-                        WHERE type = 'table'
+                        WHERE type = 'table' 
                         AND name = ? """
 
 createTableQuery: str = """ CREATE Table IF NOT EXISTS Words (

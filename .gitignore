@@ -11,9 +11,10 @@ venv/
 *.db
 *.db-journal
 
-# Credentials (VERY IMPORTANT!)
+# Credentials & secrets (VERY IMPORTANT!)
 credentials.json
 *.json
+.env
 
 # IDE
 .vscode/

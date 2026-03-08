@@ -1,0 +1,2 @@
+[console_scripts]
+german = src.main:main

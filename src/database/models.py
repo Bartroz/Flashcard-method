@@ -3,7 +3,8 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Optional, Union
 from pathlib import Path
-from config import DB_PATH
+
+from src.config import DB_PATH
 
 @dataclass
 class DBResult():

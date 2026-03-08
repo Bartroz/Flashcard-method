@@ -1,4 +1,4 @@
-from src.database.sql_queries import (
+from .sql_queries import (
     tableExistQuery,
     createTableQuery,
     addWordQuery,
@@ -9,12 +9,17 @@ from src.database.sql_queries import (
     incorrectWordsQuery
 )
 
-from models import (
+from .models import (
     DBResult,
     dbConnection,
     
 )
 
+from .db_validation import (
+    initialize_database
+)
+
 __all__ = ["tableExistQuery","createTableQuery", "addWordQuery",
            "downloadNewWordsQuery","downloadWordsForContinuationQuery" ,
-           "downloadDifficultWordsQuery", "correctWordsQuery" , "incorrectWordsQuery"]
+           "downloadDifficultWordsQuery", "correctWordsQuery" , "incorrectWordsQuery",
+           "dbConnection", "initialize_database"]

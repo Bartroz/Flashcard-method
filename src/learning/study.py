@@ -1,13 +1,13 @@
 import sys,random
 
-from database.db_process import (
+from src.database.db_process import (
     score_learned_words,
     download_new_words_from_DB,
     download_words_for_continuation,
     download_difficult_words
 )
 
-from sheets.google_sheets_connection import check_if_sync_required
+from src.sheets.google_sheets_connection import check_if_sync_required
 
 def continueLearning(lastStudyMode:int):
     """

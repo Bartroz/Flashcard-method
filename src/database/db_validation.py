@@ -13,8 +13,12 @@ from .models import (
 def check_if_table_exist() -> bool:
     try:
         with dbConnection() as cursor:
-            cursor.execute(tableExistQuery)
-            return cursor.fetchone() is not None
+            cursor.execute(tableExistQuery,("Words",))
+            
+            if cursor.fetchone() is None:
+                create_table()
+            
+            return True
 
     except sqlite3.Error as e:
         print(f"Wyszukiwanie czy tabela istnieje nie powiodło się: {e}")
@@ -43,8 +47,12 @@ def initialize_database() -> None:
         if check_if_table_exist():
             print("✓ Tabela istnieje")
         else: 
-            # create_table(tableName)
+            create_table("Words")
             print(f"Utworzono tabele!")
 
     except sqlite3.Error as e:
         print(f"Błąd podczas inicjacji bazy danych: {e}")
+
+
+if __name__ == "__main__":
+    initialize_database()

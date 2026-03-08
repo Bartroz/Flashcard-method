@@ -1,28 +1,19 @@
-import gspread, sys
+import gspread
 from google.oauth2.service_account import Credentials
 from gspread.exceptions import APIError, SpreadsheetNotFound
-from pathlib import Path
 
+from src.config import CREDENTIALS_PATH, SHEET_ID
 from src.database.models import DBResult
 from src.database.db_validation import check_if_google_sheet_updated
 from src.database.db_process import add_word_to_main_db
 
-scopes:list[str] = ["https://www.googleapis.com/auth/spreadsheets"]
-sheetID = "1SEylIRcFcGVEcBMnGhRyeCMhphbjbIFaWT_OYKdvCOk"
+scopes: list[str] = ["https://www.googleapis.com/auth/spreadsheets"]
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
-print(f"DEBUG: PROJECT_ROOT = {PROJECT_ROOT}\n")
-
-
-BASE_DIR = Path(__file__).resolve().parent
-CREDENTIALS_PATH = BASE_DIR / "src" /"config.py"
-
-creds = Credentials.from_service_account_file(str(CREDENTIALS_PATH), scopes = scopes)
+creds = Credentials.from_service_account_file(str(CREDENTIALS_PATH), scopes=scopes)
 client = gspread.authorize(creds)
-sheet = client.open_by_key(sheetID)
+sheet = client.open_by_key(SHEET_ID)
 
-worksheets = [sheet.worksheet("Strona1"),sheet.worksheet("Strona2")]
+worksheets = [sheet.worksheet("Strona1"), sheet.worksheet("Strona2")]
 
 def download_from_googleSheets() -> DBResult:
     """ Pobieranie słów z arkuszy google """ 
@@ -36,6 +27,7 @@ def download_from_googleSheets() -> DBResult:
 
         #Walidacja czy wypełniono poprawnie
         if check_if_sheet_filled_correctly(record):
+            print("Pobrano słowa!")
             return DBResult(success=True, data = record)
         else:
             return DBResult(success=False, error="Arkusz niepoprawnie wypełniony")
@@ -66,7 +58,7 @@ def check_if_sheet_filled_correctly(listOfWords:list[str]) -> bool:
         
         if meaning3 and not meaning2:
             raise ValueError("Kolumna 3 nie może istnieć bez kolumny 2")
-
+    
     return True
 
 def check_if_sync_required(updateRequired:bool = False) -> None:
@@ -103,4 +95,6 @@ def check_if_sync_required(updateRequired:bool = False) -> None:
             except Exception as e:
                 print(f"Błąd z synchronizacją z bazą danych!: {e}")
 
+if __name__ == "__main__":
+    download_from_googleSheets()
 
