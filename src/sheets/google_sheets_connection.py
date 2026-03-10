@@ -9,14 +9,17 @@ from src.database.db_process import add_word_to_main_db
 
 scopes: list[str] = ["https://www.googleapis.com/auth/spreadsheets"]
 
-creds = Credentials.from_service_account_file(str(CREDENTIALS_PATH), scopes=scopes)
-client = gspread.authorize(creds)
-sheet = client.open_by_key(SHEET_ID)
+def get_sheet():
+    creds = Credentials.from_service_account_file(str(CREDENTIALS_PATH), scopes=scopes)
+    client = gspread.authorize(creds)
+    return client.open_by_key(SHEET_ID)
 
-worksheets = [sheet.worksheet("Strona1"), sheet.worksheet("Strona2")]
 
 def download_from_googleSheets() -> DBResult:
     """ Pobieranie słów z arkuszy google """ 
+
+    sheet = get_sheet()
+    worksheets = [sheet.worksheet("Strona1"), sheet.worksheet("Strona2"), sheet.worksheet("Strona3")]
 
     try:
         record:list[str] = []
@@ -94,7 +97,4 @@ def check_if_sync_required(updateRequired:bool = False) -> None:
                 add_word_to_main_db(sheetResults.data)
             except Exception as e:
                 print(f"Błąd z synchronizacją z bazą danych!: {e}")
-
-if __name__ == "__main__":
-    download_from_googleSheets()
 

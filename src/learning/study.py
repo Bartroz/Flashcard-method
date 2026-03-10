@@ -148,7 +148,7 @@ def main(scenario:int) -> None:
         return
     
     while (True):
-        quantity_input = input("Wybierz ilość słów do powtórzenia:  ") 
+        quantity_input = input(f"Wybierz ilość słów do powtórzenia z {len(words.data)} dostępnych:  ") 
 
         if not quantity_input:
             print("To pole nie może być puste!")
@@ -161,7 +161,7 @@ def main(scenario:int) -> None:
             continue
 
         if  quantity <= 0 or quantity > len(words.data) :
-            print("Podaj poprawną wartość z zakresu od 1 do 100")
+            print(f"Podaj poprawną wartość z zakresu od 1 do {len(words.data)}")
             continue
        
         start_learning(words.data,quantity,scenario)
