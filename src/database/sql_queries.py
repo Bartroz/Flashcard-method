@@ -54,7 +54,6 @@ correctWordsQuery: str = """ UPDATE Words
 
 incorrectWordsQuery: str = """ UPDATE Words  
                         SET total_attempts = total_attempts + 1,
-                        total_correct = 0,
                         last_reviewed_at = CURRENT_TIMESTAMP
                         WHERE word = ? """
 
