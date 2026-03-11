@@ -24,7 +24,7 @@ def check_if_table_exist() -> bool:
         print(f"Wyszukiwanie czy tabela istnieje nie powiodło się: {e}")
         raise    
 
-def create_table(missingTable: str) -> None: #tworzenie tabeli
+def create_table() -> None: #tworzenie tabeli
     try:
         with dbConnection() as cursor:
             cursor.execute(createTableQuery)            

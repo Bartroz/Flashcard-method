@@ -14,12 +14,12 @@ venv/
 # Credentials & secrets (VERY IMPORTANT!)
 credentials.json
 *.json
-.env
 
 # IDE
 .vscode/
 .idea/
 *.swp
+*.claude
 
 # OS
 .DS_Store

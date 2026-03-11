@@ -20,7 +20,7 @@ def continueLearning(lastStudyMode:int):
     """  
     toContinue:bool = False
     while True:
-        print("\nCzy chcesz kontynuować dalszą naukę?")
+        print("\nCzy chcesz kontynuować?")
         print(" 1: Tak")
         print(" 2: Nie")
         print(" 3: Powrót do menu głównego")
@@ -127,7 +127,39 @@ def start_learning(wordsList:tuple[str],wordsQuantity:int,scenario:int) -> None:
         print("Gratulacje, możesz iść dalej!")
 
     score_learned_words(wordsToEvaluate)
-    continueLearning(scenario)
+
+def update_database_menu() -> None:
+    """Submenu aktualizacji bazy słów - pozwala wybrać liczbę arkuszy"""
+    
+    print("\n--- Aktualizacja bazy słów ---")
+    print("1. Użyj domyślnej liczby arkuszy")
+    print("2. Zmień liczbę arkuszy")
+
+    while True:
+        userInput = input("\nWybierz opcję: ").strip()
+
+        if not userInput:
+            print("To pole nie może być puste!")
+            continue
+
+        try:
+            choice = int(userInput)
+        except ValueError:
+            print("Podana wartość musi być liczbą całkowitą!")
+            continue
+
+        if choice == 1:
+            check_if_sync_required(updateRequired=True)
+            break
+
+        elif choice == 2:
+            check_if_sync_required(updateRequired=True, ask_for_sheets=True)  # ← nowy parametr
+            break
+
+        else:
+            print("Podaj wartość 1 lub 2")
+
+        continueLearning(lastStudyMode=2)
 
 def main(scenario:int) -> None: 
     """ Główna funkcja nauki"""
@@ -165,6 +197,7 @@ def main(scenario:int) -> None:
             continue
        
         start_learning(words.data,quantity,scenario)
+        continueLearning(scenario)
         break
 
 def choose_program() -> None: #wybór programu 
@@ -194,7 +227,7 @@ def choose_program() -> None: #wybór programu
             continue
         
         if userChoise == 1:
-            check_if_sync_required(True)
+            update_database_menu()
             break
 
         if userChoise == 2:
