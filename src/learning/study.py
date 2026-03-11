@@ -37,8 +37,7 @@ def continueLearning(lastStudyMode:int):
 
         #Powrót do menu głównego
         elif userInput == "3":
-            choose_program()
-            break
+            return
         else:
             print("Wpisz prawidłową odpowiedź")
 
@@ -158,8 +157,7 @@ def update_database_menu() -> None:
             break
         
         elif choice == 3:
-            choose_program()
-            break 
+            return
 
         else:
             print("Podaj wartość 1 lub 2")
@@ -231,7 +229,7 @@ def choose_program() -> None: #wybór programu
             continue
 
         if userChoise < 1 or userChoise > 5:
-            print("Podaj poprawną wartość z zakresu od 1 do 4")
+            print("Podaj poprawną wartość z zakresu od 1 do 5")
             continue
         
         if userChoise == 1:
