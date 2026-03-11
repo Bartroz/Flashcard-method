@@ -134,6 +134,7 @@ def update_database_menu() -> None:
     print("\n--- Aktualizacja bazy słów ---")
     print("1. Użyj domyślnej liczby arkuszy")
     print("2. Zmień liczbę arkuszy")
+    print("3. Powrotu do menu wyboru programu")
 
     while True:
         userInput = input("\nWybierz opcję: ").strip()
@@ -150,16 +151,21 @@ def update_database_menu() -> None:
 
         if choice == 1:
             check_if_sync_required(updateRequired=True)
-            break
+            break   
 
         elif choice == 2:
-            check_if_sync_required(updateRequired=True, ask_for_sheets=True)  # ← nowy parametr
+            check_if_sync_required(updateRequired=True, ask_for_sheets=True)  
             break
+        
+        elif choice == 3:
+            choose_program()
+            break 
 
         else:
             print("Podaj wartość 1 lub 2")
 
-        continueLearning(lastStudyMode=2)
+        continueLearning(lastStudyMode=3)
+        break
 
 def main(scenario:int) -> None: 
     """ Główna funkcja nauki"""
@@ -170,6 +176,8 @@ def main(scenario:int) -> None:
         words = download_words_for_continuation()
     elif scenario == 2:
         words = download_difficult_words() 
+    elif scenario == 3:
+        return
     
     if not words.success:
         print(f"Błąd pobierania słów: {words.error}")
@@ -246,3 +254,6 @@ def choose_program() -> None: #wybór programu
             print("Zakończono działanie programu.")
             sys.exit(0)
             break
+
+if __name__ == "__main__":
+    choose_program()

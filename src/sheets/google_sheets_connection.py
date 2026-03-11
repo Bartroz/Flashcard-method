@@ -41,7 +41,7 @@ def download_from_googleSheets(ask_for_sheets: bool = False) -> DBResult:
 
     sheet = get_sheet()
 
-    if not ask_for_sheets:
+    if ask_for_sheets:
         _last_worksheet_names = get_worksheet_names()  # zapisuje wybór na przyszłość
 
     worksheets = [sheet.worksheet(name) for name in _last_worksheet_names]  # zawsze używa ostatnich
@@ -93,7 +93,7 @@ def check_if_sync_required(updateRequired:bool = False,  ask_for_sheets: bool = 
 
     """ Sprawdzanie czy wymagana jest synchronizacja bazy danych z arkuszem google """
 
-    sheetResults = download_from_googleSheets(ask_for_sheets=ask_for_sheets)
+    sheetResults = download_from_googleSheets(ask_for_sheets)
     dbResult = check_if_google_sheet_updated()
     sheets_count:int =  0 
 
