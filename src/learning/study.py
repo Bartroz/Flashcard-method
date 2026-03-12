@@ -31,7 +31,7 @@ def continueLearning():
         print(" 1: Tak")
         print(" 2: Nie")
         print(" 3: Powrót do menu głównego")
-        userInput = input("").strip().lower()
+        userInput = input("Wybierz odpowiedź: ").strip().lower()
 
         #Kontynuuj naukę
         if userInput in ["1", "tak"]:
@@ -241,11 +241,11 @@ def choose_program() -> None: #wybór programu
             case 1:
                 update_database_menu()
             case 2:
-                main(ProgramModes.NEW_WORDS)
+                main(ProgramModes.NEW_WORDS.value)
             case 3:
-                main(ProgramModes.TO_CONTINUE)
+                main(ProgramModes.TO_CONTINUE.value)
             case 4:
-                main(ProgramModes.DIFFICULT_WORDS)
+                main(ProgramModes.DIFFICULT_WORDS.value)
             case 5:
                 print("Zakończono działanie programu.")
                 sys.exit(0)
