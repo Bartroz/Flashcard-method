@@ -24,3 +24,7 @@ credentials.json
 # OS
 .DS_Store
 Thumbs.db
+
+#py files
+google_sheet_conn.py
+sql_conn.py
