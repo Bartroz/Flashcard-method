@@ -1,5 +1,5 @@
 import sys,random
-
+from enum import Enum
 from src.database.db_process import (
     score_learned_words,
     download_new_words_from_DB,
@@ -8,6 +8,13 @@ from src.database.db_process import (
 )
 
 from src.sheets.google_sheets_connection import check_if_sync_required
+
+class ProgramModes(Enum):
+    NEW_WORDS = 0
+    TO_CONTINUE = 1
+    DIFFICULT_WORDS = 2
+
+MAX_ATTEMPTS: int = 3
 
 def continueLearning():
     """
@@ -50,7 +57,7 @@ def start_learning(wordsList:tuple[str],wordsQuantity:int,scenario:int) -> None:
 
     random.shuffle(wordsList)
     score: int = 0
-    max_attempts: int = 3
+
     wordToPractice:list[str] = []
     wordsToEvaluate: list[tuple[str,bool]] = []
 
@@ -75,7 +82,7 @@ def start_learning(wordsList:tuple[str],wordsQuantity:int,scenario:int) -> None:
                     print("Podane słowo już zostało dodane, podaj kolejne tłumaczenie ")
                     attempts += 1
                     
-                    if attempts >= max_attempts:
+                    if attempts >= MAX_ATTEMPTS:
                         print("Nie udało się wytypować wszystkich znaczeń słowa")
                         wordToPractice.append(el[0])
                         break  
@@ -205,8 +212,7 @@ def main(scenario:int) -> None:
         while True:
             start_learning(words.data,quantity,scenario)
             if not continueLearning():
-                return
-        
+                return      
 
 def choose_program() -> None: #wybór programu 
 
@@ -235,11 +241,11 @@ def choose_program() -> None: #wybór programu
             case 1:
                 update_database_menu()
             case 2:
-                main(0)
+                main(ProgramModes.NEW_WORDS)
             case 3:
-                main(1)
+                main(ProgramModes.TO_CONTINUE)
             case 4:
-                main(2)
+                main(ProgramModes.DIFFICULT_WORDS)
             case 5:
                 print("Zakończono działanie programu.")
                 sys.exit(0)
