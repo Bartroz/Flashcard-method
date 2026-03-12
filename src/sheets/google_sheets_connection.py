@@ -86,7 +86,7 @@ def check_if_sheet_filled_correctly(listOfWords:list[str]) -> bool:
         meaning3 = row[3] if len(row) > 3 and row[3] else None
 
         #Walidacja wypełnienia
-        if not word and not meaning1:
+        if not word or not meaning1:
             raise ValueError("Kolumna 1 i 2 są obowiązkowe")
         
         if meaning3 and not meaning2:
@@ -101,6 +101,7 @@ def check_if_sync_required(updateRequired:bool = False, newSheets:bool = False) 
     sheetResults = download_from_googleSheets(newSheets)
     dbResult = check_if_google_sheet_updated()
     sheets_count:int =  0 
+    db_count:int = 0
 
     db_count = dbResult.data
     
@@ -116,6 +117,7 @@ def check_if_sync_required(updateRequired:bool = False, newSheets:bool = False) 
 
     if dbResult.success:
         if dbResult.has_data:
+            db_count = dbResult.data
             print("Pobrano słowa z bazy danych")
         else:
             print("Baza danych jest pusta")
