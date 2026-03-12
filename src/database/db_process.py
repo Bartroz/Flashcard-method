@@ -26,7 +26,7 @@ def add_word_to_main_db(listOfWords:list[str]) -> bool:
                 meaning3 = row[3] if len(row) > 3 else None
                 normalizedWords.append((word,meaning1,meaning2,meaning3))
             cursor.executemany(addWordQuery,normalizedWords)
-            print("  Dodano słowa do bazy danych!")
+            print("Dodano słowa do bazy danych!")
             print(10*("-"))
             return True
         
