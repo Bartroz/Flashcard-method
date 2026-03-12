@@ -9,7 +9,7 @@ from src.database.db_process import (
 
 from src.sheets.google_sheets_connection import check_if_sync_required
 
-def continueLearning(lastStudyMode:int):
+def continueLearning():
     """
     Funkcja wywołująca się po zakończeniu nauki, proponuje użytkownikowi 3 możliwości:
 
@@ -28,7 +28,7 @@ def continueLearning(lastStudyMode:int):
 
         #Kontynuuj naukę
         if userInput in ["1", "tak"]:
-            main(lastStudyMode)
+            return True
 
         #Zakończ
         elif userInput in ["2", "nie"]:
@@ -37,8 +37,7 @@ def continueLearning(lastStudyMode:int):
 
         #Powrót do menu głównego
         elif userInput == "3":
-            choose_program()
-            break
+            return False
         else:
             print("Wpisz prawidłową odpowiedź")
 
@@ -132,8 +131,8 @@ def update_database_menu() -> None:
     """Submenu aktualizacji bazy słów - pozwala wybrać liczbę arkuszy"""
     
     print("\n--- Aktualizacja bazy słów ---")
-    print("1. Użyj domyślnej liczby arkuszy")
-    print("2. Zmień liczbę arkuszy")
+    print("1. Zmień liczbę arkuszy")
+    print("2. Aktualizuj wybrane arkusze")
     print("3. Powrotu do menu wyboru programu")
 
     while True:
@@ -148,37 +147,36 @@ def update_database_menu() -> None:
         except ValueError:
             print("Podana wartość musi być liczbą całkowitą!")
             continue
-
-        if choice == 1:
-            check_if_sync_required(updateRequired=True)
-            break   
-
-        elif choice == 2:
-            check_if_sync_required(updateRequired=True, ask_for_sheets=True)  
-            break
         
-        elif choice == 3:
-            choose_program()
-            break 
-
-        else:
-            print("Podaj wartość 1 lub 2")
-
+        match choice:
+            case 1:
+                check_if_sync_required(updateRequired=True ,newSheets=True)  
+                break
+            case 2:
+                check_if_sync_required(updateRequired=True)
+                pass
+            case 3:
+                return
+            case _:
+                print("Podaj wartość 1 lub 2")
+        
         continueLearning(lastStudyMode=3)
         break
 
 def main(scenario:int) -> None: 
     """ Główna funkcja nauki"""
 
-    if scenario == 0:
-        words = download_new_words_from_DB()
-    elif scenario == 1:
-        words = download_words_for_continuation()
-    elif scenario == 2:
-        words = download_difficult_words() 
-    elif scenario == 3:
+    scenarios = {
+        0 : download_new_words_from_DB,
+        1 : download_words_for_continuation,
+        2 : download_difficult_words
+    }
+
+    if scenario == 3:
         return
     
+    words = scenarios[scenario]()
+
     if not words.success:
         print(f"Błąd pobierania słów: {words.error}")
         return
@@ -204,20 +202,23 @@ def main(scenario:int) -> None:
             print(f"Podaj poprawną wartość z zakresu od 1 do {len(words.data)}")
             continue
        
-        start_learning(words.data,quantity,scenario)
-        continueLearning(scenario)
-        break
+        while True:
+            start_learning(words.data,quantity,scenario)
+            if not continueLearning():
+                return
+        
 
 def choose_program() -> None: #wybór programu 
 
-    print("\nWitam w aplikacji do nauki słów metodą fiszek!, wybierz swoją aktywność:")
-    print("\n1. Aktualizacja bazy słów")
-    print("\n2. Nauka nowych słów")
-    print("\n3. Kontynuacja nauki już poznanych słów")
-    print("\n4. Powtarzanie nieopanowanych słów")
-    print("\n5. Zakończ")
-    
     while (True):
+
+        print("\nWitam w aplikacji do nauki słów metodą fiszek!, wybierz swoją aktywność:")
+        print(" 1. Aktualizacja bazy słów")
+        print(" 2. Nauka nowych słów")
+        print(" 3. Kontynuacja nauki już poznanych słów")
+        print(" 4. Powtarzanie nieopanowanych słów")
+        print(" 5. Zakończ")
+
         userChoice_input: str = input("\nWybierz swój program: ")
 
         if not userChoice_input:
@@ -230,30 +231,21 @@ def choose_program() -> None: #wybór programu
             print("Podana wartość musi być liczbą całkowitą!")
             continue
 
-        if userChoise < 1 or userChoise > 5:
-            print("Podaj poprawną wartość z zakresu od 1 do 4")
-            continue
-        
-        if userChoise == 1:
-            update_database_menu()
-            break
-
-        if userChoise == 2:
-            main(0)
-            break
-
-        if userChoise == 3:
-            main(1)
-            break
-
-        if userChoise == 4:
-            main(2)
-            break
-
-        if userChoise == 5:
-            print("Zakończono działanie programu.")
-            sys.exit(0)
-            break
+        match userChoise:
+            case 1:
+                update_database_menu()
+            case 2:
+                main(0)
+            case 3:
+                main(1)
+            case 4:
+                main(2)
+            case 5:
+                print("Zakończono działanie programu.")
+                sys.exit(0)
+            case _:
+                print("Podaj poprawną wartość z zakresu od 1 do 4")
+                continue
 
 if __name__ == "__main__":
     choose_program()
