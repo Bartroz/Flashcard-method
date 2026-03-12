@@ -19,7 +19,7 @@ createTableQuery: str = """ CREATE Table IF NOT EXISTS Words (
 
 countQuery: str = """ SELECT COUNT(*) FROM Words """
 
-addWordQuery: str = """ INSERT OR IGNORE INTO Words
+addWordQuery: str = """ INSERT OR REPLACE INTO Words
                     (word, meaning1, meaning2, meaning3)
                     VALUES (?,?,?,?) """
 

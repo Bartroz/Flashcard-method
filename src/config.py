@@ -20,6 +20,9 @@ DB_PATH = DATA_DIR / "GermanLearning.db"
 # Ścieżka do credentials
 CREDENTIALS_PATH = DATA_DIR / "credentials.json"
 
+#Ścieżka do pliku textowego
+INFO_PATH = DATA_DIR / "sheetsInfo.json"
+
 # ID arkusza Google Sheets (pobierane z .env)
 SHEET_ID = os.getenv("SHEET_ID")
 
