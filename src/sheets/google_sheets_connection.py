@@ -89,19 +89,18 @@ def json_file_service(requiredSynchronize:bool = False) -> int:
 def check_if_sheet_filled_correctly(listOfWords:list[str]) -> bool:
     """ Spradzanie czy arkusz google został poprawnie wypełniony """
     
-    try:
-    #Separacja słów
-        for row in listOfWords:
-            word = row[0]
-            meaning1 = row[1]
-            meaning2 = row[2] if len(row) > 2 and row[2] else None
-            meaning3 = row[3] if len(row) > 3 and row[3] else None
 
-        return True  
-    except not word or not meaning1: 
+    for row in listOfWords:
+        word = row[0]
+        meaning1 = row[1]
+        meaning2 = row[2] if len(row) > 2 and row[2] else None
+        meaning3 = row[3] if len(row) > 3 and row[3] else None
+
+    if not word or not meaning1:
         raise ValueError("Kolumna 1 i 2 są obowiązkowe")
-    except meaning3 and not meaning2:
+    if meaning3 and not meaning2:
         raise ValueError("Kolumna 3 nie może istnieć bez kolumny 2")
+    return True
 
 def check_if_sync_required(updateRequired:bool = False, newSheets:bool = False) -> None:
 
