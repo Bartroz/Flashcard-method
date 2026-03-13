@@ -10,6 +10,9 @@ from src.database.db_process import add_word_to_main_db
 scopes: list[str] = ["https://www.googleapis.com/auth/spreadsheets"]
 
 def get_sheet():
+    if not SHEET_ID:
+        raise EnvironmentError("Brak zmiennej SHEET_ID w pliku .env")
+    
     creds = Credentials.from_service_account_file(str(CREDENTIALS_PATH), scopes=scopes)
     client = gspread.authorize(creds)
     return client.open_by_key(SHEET_ID)
@@ -35,22 +38,9 @@ def get_worksheet_names() -> int:
         
         return count
 
-def download_from_googleSheets(requiredSynchronize:bool = False) -> DBResult:
+def download_from_googleSheets() -> DBResult:
 
-    sheetsQuantity:int 
-
-    sheet = get_sheet()
-
-    if requiredSynchronize:
-        sheetsQuantity = get_worksheet_names()
-        with open(str(INFO_PATH), "w") as f:
-            json.dump({"sheetsQuantity" : sheetsQuantity}, f)
-    else:
-        with open(str(INFO_PATH), "r") as f:
-            load = json.load(f)
-            sheetsQuantity = load["sheetsQuantity"]
-
-    worksheets = [sheet.worksheet(f"Strona{i}") for i in range(1, sheetsQuantity + 1)]
+    worksheets = json_file_service()
 
     try:
         record: list[str] = []
@@ -75,24 +65,43 @@ def download_from_googleSheets(requiredSynchronize:bool = False) -> DBResult:
         print(f"Nie znaleziono arkusza o podanej nazwie: {e}")
         return DBResult(success=False, error=str(e))
 
+def json_file_service(requiredSynchronize:bool = False) -> int:
+    
+    sheet = get_sheet()
+
+    try:
+        if requiredSynchronize:
+            sheetsQuantity = get_worksheet_names()
+            with open(str(INFO_PATH), "w") as f:
+                json.dump({"sheetsQuantity" : sheetsQuantity}, f)
+        else:
+            with open(str(INFO_PATH), "r") as f:
+                load = json.load(f)
+                sheetsQuantity = load["sheetsQuantity"]
+    except FileNotFoundError:
+        print("Brak pliku sheetsQuantity.json, następuje tworzenie nowego")
+        sheetsQuantity = get_worksheet_names()
+        with open(str(INFO_PATH), "w") as f:
+            json.dump({"sheetsQuantity" : sheetsQuantity}, f)
+
+    return [sheet.worksheet(f"Strona{i}") for i in range(1, sheetsQuantity + 1)]
+
 def check_if_sheet_filled_correctly(listOfWords:list[str]) -> bool:
     """ Spradzanie czy arkusz google został poprawnie wypełniony """
     
+    try:
     #Separacja słów
-    for row in listOfWords:
-        word = row[0]
-        meaning1 = row[1]
-        meaning2 = row[2] if len(row) > 2 and row[2] else None
-        meaning3 = row[3] if len(row) > 3 and row[3] else None
+        for row in listOfWords:
+            word = row[0]
+            meaning1 = row[1]
+            meaning2 = row[2] if len(row) > 2 and row[2] else None
+            meaning3 = row[3] if len(row) > 3 and row[3] else None
 
-        #Walidacja wypełnienia
-        if not word or not meaning1:
-            raise ValueError("Kolumna 1 i 2 są obowiązkowe")
-        
-        if meaning3 and not meaning2:
-            raise ValueError("Kolumna 3 nie może istnieć bez kolumny 2")
-    
-    return True
+        return True  
+    except not word or not meaning1: 
+        raise ValueError("Kolumna 1 i 2 są obowiązkowe")
+    except meaning3 and not meaning2:
+        raise ValueError("Kolumna 3 nie może istnieć bez kolumny 2")
 
 def check_if_sync_required(updateRequired:bool = False, newSheets:bool = False) -> None:
 

@@ -1,6 +1,6 @@
 import sqlite3, logging
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
@@ -56,7 +56,8 @@ def initialize_database() -> None:
             logger.info("Stworzono baze danych wraz z tabelą")
 
     except sqlite3.Error as e:
-        pass
+        logger.error("Bład podczas inicjalizacji bazy danych: {e}")
+        raise
 
 
 if __name__ == "__main__":

@@ -52,7 +52,7 @@ def normalize_spaces(text: str) -> str:
     """ Usuwanie whitespaceów z google sheets """ 
     return ' '.join(text.split())
 
-def start_learning(wordsList:tuple[str],wordsQuantity:int,scenario:int) -> None: 
+def start_learning(wordsList:list[tuple],wordsQuantity:int,scenario:int) -> None: 
     """ Rozpoczęcie nauki """
 
     random.shuffle(wordsList)
@@ -161,13 +161,13 @@ def update_database_menu() -> None:
                 break
             case 2:
                 check_if_sync_required(updateRequired=True)
-                pass
+                break
             case 3:
                 return
             case _:
                 print("Podaj wartość 1 lub 2")
         
-        continueLearning(lastStudyMode=3)
+        continueLearning()
         break
 
 def main(scenario:int) -> None: 
@@ -178,9 +178,6 @@ def main(scenario:int) -> None:
         1 : download_words_for_continuation,
         2 : download_difficult_words
     }
-
-    if scenario == 3:
-        return
     
     words = scenarios[scenario]()
 

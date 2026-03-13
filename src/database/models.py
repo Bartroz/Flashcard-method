@@ -5,7 +5,7 @@ from typing import Optional, Union
 from src.config import DB_PATH
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
+
 
 @dataclass
 class DBResult():
@@ -19,7 +19,11 @@ class DBResult():
             logger.info("Brak słów w bazie danych")
             return False
         if isinstance(self.data, int):
-            return self.data > 0
+            if self.data == 0:
+                logger.info("Brak słów w bazie danych")
+                return False
+            else:
+                return self.data > 0
         if isinstance(self.data, list):
             return len(self.data) > 0
 

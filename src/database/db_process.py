@@ -83,7 +83,8 @@ def score_learned_words(wordsToEvaluate: list[tuple[str,bool]]) -> None:
             
             if incorrect_words:
                 cursor.executemany(incorrectWordsQuery,incorrect_words)
-
+            
+            print("Ewaluacja zakończona pomyślnie")
     except sqlite3.Error as e:
         print(f"Błąd podczas aktualizacji bazy danych: {e}")
         raise

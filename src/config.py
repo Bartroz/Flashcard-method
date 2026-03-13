@@ -26,5 +26,4 @@ INFO_PATH = DATA_DIR / "sheetsInfo.json"
 # ID arkusza Google Sheets (pobierane z .env)
 SHEET_ID = os.getenv("SHEET_ID")
 
-if not SHEET_ID:
-    raise EnvironmentError("Brak zmiennej SHEET_ID w pliku .env")
+
