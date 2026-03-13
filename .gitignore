@@ -10,6 +10,7 @@ venv/
 # Database
 *.db
 *.db-journal
+.env
 
 # Credentials & secrets (VERY IMPORTANT!)
 credentials.json
