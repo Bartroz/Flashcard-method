@@ -6,6 +6,7 @@ __pycache__/
 .Python
 env/
 venv/
+*.egg-info/
 
 # Database
 *.db
@@ -14,7 +15,6 @@ venv/
 
 # Credentials & secrets (VERY IMPORTANT!)
 credentials.json
-*.json
 
 # IDE
 .vscode/
@@ -29,3 +29,4 @@ Thumbs.db
 #py files
 google_sheet_conn.py
 sql_conn.py
+

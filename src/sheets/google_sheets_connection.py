@@ -102,42 +102,30 @@ def check_if_sheet_filled_correctly(listOfWords:list[str]) -> bool:
         raise ValueError("Kolumna 3 nie może istnieć bez kolumny 2")
     return True
 
-def check_if_sync_required(updateRequired:bool = False, newSheets:bool = False) -> None:
+def fetch_sheet_data(newSheets: bool = False) -> DBResult:
+    return download_from_googleSheets(newSheets)
 
-    """ Sprawdzanie czy wymagana jest synchronizacja bazy danych z arkuszem google """
+def fetch_db_count() -> int:
+    result = check_if_google_sheet_updated()
+    return result.data if result.success else 0
 
-    sheetResults = download_from_googleSheets(newSheets)
-    dbResult = check_if_google_sheet_updated()
-    sheets_count:int =  0 
-    db_count:int = 0
+def is_sync_needed(sheets_count: int, db_count: int, updateRequired: bool) -> bool:
+    return sheets_count > db_count or db_count == 0 or updateRequired
 
-    db_count = dbResult.data
+def check_if_sync_required(updateRequired: bool = False, newSheets: bool = False) -> None:
+    sheet_result = fetch_sheet_data(newSheets)
+    db_count = fetch_db_count()
     
-    if sheetResults.success:
-        if sheetResults.has_data:
-            sheets_count = len(sheetResults.data)
-            print(10*("-"))
-            print("Pobrano słowa z arkusza google")
-        else:
-            print("Brak słów w arkuszu")
-    else:
-        print(f"{sheetResults.error}")
+    if not sheet_result.success or not sheet_result.has_data:
+        print(f"Błąd pobierania arkusza: {sheet_result.error}")
+        return
 
-    if dbResult.success:
-        if dbResult.has_data:
-            db_count = dbResult.data
-            print("Pobrano słowa z bazy danych")
-        else:
-            print("Baza danych jest pusta")
-    else:
-        print(f"{dbResult.error}")
+    sheets_count = len(sheet_result.data)
 
-    if sheetResults.success and dbResult.success:
-        if sheets_count > db_count or db_count == 0 or updateRequired:
-            try:
-                add_word_to_main_db(sheetResults.data)
-            except Exception as e:
-                print(f"Błąd z synchronizacją z bazą danych!: {e}")
-    
+    if is_sync_needed(sheets_count, db_count, updateRequired):
+        try:
+            add_word_to_main_db(sheet_result.data)
+        except Exception as e:
+            print(f"Błąd synchronizacji: {e}")
 
 
